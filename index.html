@@ -12,7 +12,12 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
+    <meta name="apple-mobile-web-app-title" content="A5000" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>A5000 Player</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -33,7 +38,6 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- Mood-тинтинг (окрашивание страницы под настроение) -->
     <div class="mood-tint" id="moodTint"></div>
 
     <!-- Splash -->
@@ -55,32 +59,41 @@
               <div class="brand-avatar">A</div>
               <div>
                 <div class="brand-name" id="greetingText">Привет</div>
-                <div class="brand-sub">A5000 · PLAYER</div>
+                <div class="brand-sub" id="themeHint">A5000 · PLAYER</div>
               </div>
             </div>
             <button
-              class="mood-badge"
-              id="moodBadge"
-              style="display: none"
-              onclick="clearMood()"
+              class="icon-btn glass"
+              onclick="openSettings()"
+              aria-label="Настройки"
             >
-              <span id="moodBadgeEmoji">🔥</span>
-              <span id="moodBadgeName">Mood</span>
-              <span class="mood-badge-close">✕</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                />
+              </svg>
             </button>
           </div>
         </header>
         <div class="scr-body">
           <div class="quick-actions">
-            <button class="qa-btn qa-primary" onclick="playRandom()">
+            <button class="qa-btn qa-primary press" onclick="playRandom()">
               <span class="qa-icon">🎲</span
               ><span class="qa-label">Гдееееее</span>
             </button>
-            <button class="qa-btn" onclick="playAllFromStart()">
+            <button class="qa-btn press" onclick="playAllFromStart()">
               <span class="qa-icon">▶</span
               ><span class="qa-label">Всё подряд</span>
             </button>
-            <button class="qa-btn" onclick="navigate('liked')">
+            <button class="qa-btn press" onclick="navigate('liked')">
               <span class="qa-icon">❤️</span
               ><span class="qa-label">Любимые</span>
             </button>
@@ -88,7 +101,7 @@
 
           <div class="section-head">
             <h2>Недавние</h2>
-            <button class="text-btn" onclick="navigate('library')">
+            <button class="text-btn press" onclick="navigate('library')">
               Все →
             </button>
           </div>
@@ -148,19 +161,19 @@
         <header class="scr-header glass"><h1>Библиотека</h1></header>
         <div class="scr-body">
           <div class="filter-row" id="filterRow">
-            <button class="chip active" data-filter="all">Все</button>
-            <button class="chip" data-filter="feat">С фитами</button>
-            <button class="chip" data-filter="solo">Соло</button>
-            <button class="chip" data-filter="liked">❤️ Любимые</button>
+            <button class="chip press active" data-filter="all">Все</button>
+            <button class="chip press" data-filter="feat">С фитами</button>
+            <button class="chip press" data-filter="solo">Соло</button>
+            <button class="chip press" data-filter="liked">❤️ Любимые</button>
           </div>
           <div class="lib-controls">
-            <button class="sort-btn glass" onclick="cycleSort()">
+            <button class="sort-btn glass press" onclick="cycleSort()">
               <span class="sort-arrow">↕</span
               ><span id="sortLabel">По номеру</span>
             </button>
             <div class="view-toggle glass">
               <button
-                class="vt-btn active"
+                class="vt-btn active press"
                 data-view="list"
                 onclick="setView('list')"
                 aria-label="Список"
@@ -176,7 +189,7 @@
                 </svg>
               </button>
               <button
-                class="vt-btn"
+                class="vt-btn press"
                 data-view="grid"
                 onclick="setView('grid')"
                 aria-label="Сетка"
@@ -201,11 +214,50 @@
         </div>
       </section>
 
-      <!-- LIKED -->
+      <!-- LIKED (с кнопками в углу) -->
       <section class="screen" id="screenLiked" data-screen="liked">
         <header class="scr-header glass">
           <h1>❤️ Любимые</h1>
-          <span class="scr-count" id="likedCount">0</span>
+          <div class="header-actions">
+            <button
+              class="icon-btn glass press"
+              onclick="forceUpdate()"
+              aria-label="Обновить"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
+            <button
+              class="icon-btn glass press"
+              onclick="cycleTheme()"
+              id="themeBtn"
+              aria-label="Тема"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                id="themeBtnIcon"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+                />
+              </svg>
+            </button>
+          </div>
         </header>
         <div class="scr-body">
           <div class="track-list" id="likedTracks"></div>
@@ -223,7 +275,7 @@
       <section class="screen" id="screenSettings" data-screen="settings">
         <header class="scr-header glass">
           <button
-            class="icon-btn glass"
+            class="icon-btn glass press"
             onclick="closeSettings()"
             aria-label="Назад"
           >
@@ -244,24 +296,35 @@
           <div class="settings-block glass">
             <div class="settings-title">Тема</div>
             <div class="theme-seg" id="themeSeg">
-              <button class="theme-seg-btn" data-theme-opt="light">
+              <button class="theme-seg-btn press" data-theme-opt="light">
                 ☀️ День
               </button>
-              <button class="theme-seg-btn" data-theme-opt="dark">
+              <button class="theme-seg-btn press" data-theme-opt="dark">
                 🌙 Ночь
               </button>
-              <button class="theme-seg-btn active" data-theme-opt="auto">
+              <button class="theme-seg-btn press active" data-theme-opt="auto">
                 ✨ Авто
               </button>
+            </div>
+            <div
+              class="setting-sub"
+              style="
+                padding: 0 16px 14px;
+                color: var(--text-3);
+                font-size: 11.5px;
+                line-height: 1.5;
+              "
+            >
+              Авто — тема подстраивается под рассвет и закат в твоём городе.
             </div>
           </div>
           <div class="settings-block glass">
             <div class="setting-row">
               <div class="setting-info">
                 <div class="setting-title">Вибрация</div>
-                <div class="setting-sub">Тактильный отклик</div>
+                <div class="setting-sub">Тактильный отклик при нажатиях</div>
               </div>
-              <button class="toggle on" id="toggleVibrate"></button>
+              <button class="toggle on press" id="toggleVibrate"></button>
             </div>
             <div class="setting-row">
               <div class="setting-info">
@@ -270,7 +333,54 @@
                   Не гасить экран при воспроизведении
                 </div>
               </div>
-              <button class="toggle on" id="toggleWake"></button>
+              <button class="toggle on press" id="toggleWake"></button>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-title">Обновить приложение</div>
+                <div class="setting-sub">Скачать последнюю версию</div>
+              </div>
+              <button
+                class="icon-btn glass press"
+                onclick="forceUpdate()"
+                aria-label="Обновить"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+              </button>
+            </div>
+            <div class="setting-row" id="installRow" style="display: none">
+              <div class="setting-info">
+                <div class="setting-title">Установить приложение</div>
+                <div class="setting-sub">Иконка на домашнем экране</div>
+              </div>
+              <button
+                class="icon-btn glass press"
+                onclick="installApp()"
+                aria-label="Установить"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M12 3v12M8 11l4 4 4-4M20 17v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
           <div class="settings-block glass">
@@ -289,14 +399,14 @@
                 <div class="sm-lbl">Любимых</div>
               </div>
             </div>
-            <button class="settings-btn danger" onclick="resetStats()">
+            <button class="settings-btn danger press" onclick="resetStats()">
               Сбросить статистику
             </button>
           </div>
           <div class="settings-block glass">
             <div class="settings-title">О приложении</div>
             <div class="about-text">
-              A5000 Player · v1.1<br />
+              <b style="color: var(--text)">A5000 Player</b> · v2.0<br />
               A5000 Labs · 2026 · Симферополь<br />
               <span
                 style="
@@ -322,7 +432,7 @@
         <div class="mp-progress" id="mpProgress"></div>
         <div class="mp-controls">
           <button
-            class="mp-btn"
+            class="mp-btn press"
             id="mpPrev"
             onclick="
               event.stopPropagation();
@@ -335,7 +445,7 @@
             </svg>
           </button>
           <button
-            class="mp-btn mp-play"
+            class="mp-btn mp-play press"
             id="mpPlay"
             onclick="
               event.stopPropagation();
@@ -348,7 +458,7 @@
             </svg>
           </button>
           <button
-            class="mp-btn"
+            class="mp-btn press"
             id="mpNext"
             onclick="
               event.stopPropagation();
@@ -366,7 +476,7 @@
       <!-- BOTTOM NAV -->
       <nav class="bottom-nav glass">
         <button
-          class="nav-item active"
+          class="nav-item press active"
           data-nav="home"
           onclick="navigate('home')"
         >
@@ -385,7 +495,11 @@
           </svg>
           <span class="nav-label">Главная</span>
         </button>
-        <button class="nav-item" data-nav="search" onclick="navigate('search')">
+        <button
+          class="nav-item press"
+          data-nav="search"
+          onclick="navigate('search')"
+        >
           <svg
             class="nav-icon"
             viewBox="0 0 24 24"
@@ -400,7 +514,7 @@
           <span class="nav-label">Поиск</span>
         </button>
         <button
-          class="nav-item"
+          class="nav-item press"
           data-nav="library"
           onclick="navigate('library')"
         >
@@ -417,7 +531,11 @@
           </svg>
           <span class="nav-label">Медиатека</span>
         </button>
-        <button class="nav-item" data-nav="liked" onclick="navigate('liked')">
+        <button
+          class="nav-item press"
+          data-nav="liked"
+          onclick="navigate('liked')"
+        >
           <svg
             class="nav-icon"
             viewBox="0 0 24 24"
@@ -442,7 +560,7 @@
 
       <div class="np-header">
         <button
-          class="np-icon-btn glass"
+          class="np-icon-btn glass press"
           onclick="closeNowPlaying()"
           aria-label="Свернуть"
         >
@@ -461,7 +579,7 @@
           <div class="np-header-name" id="npHeaderName">—</div>
         </div>
         <button
-          class="np-icon-btn glass"
+          class="np-icon-btn glass press"
           onclick="openQueue()"
           aria-label="Очередь"
         >
@@ -501,13 +619,13 @@
       </div>
 
       <div class="np-controls">
-        <button class="np-ctrl" onclick="prevTrack()" aria-label="Назад">
+        <button class="np-ctrl press" onclick="prevTrack()" aria-label="Назад">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 6h2v12H6zM9.5 12l8.5 6V6z" />
           </svg>
         </button>
         <button
-          class="np-ctrl np-ctrl-play"
+          class="np-ctrl np-ctrl-play press"
           id="npPlay"
           onclick="togglePlay()"
           aria-label="Play"
@@ -516,7 +634,7 @@
             <path d="M8 5v14l11-7z" />
           </svg>
         </button>
-        <button class="np-ctrl" onclick="nextTrack()" aria-label="Вперёд">
+        <button class="np-ctrl press" onclick="nextTrack()" aria-label="Вперёд">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z" />
           </svg>
@@ -525,7 +643,7 @@
 
       <div class="np-extra">
         <button
-          class="np-extra-btn"
+          class="np-extra-btn press"
           id="npShuffle"
           onclick="toggleShuffle()"
           aria-label="Перемешать"
@@ -542,7 +660,7 @@
           </svg>
         </button>
         <button
-          class="np-extra-btn"
+          class="np-extra-btn press"
           id="npRepeat"
           onclick="cycleRepeat()"
           aria-label="Повтор"
@@ -562,7 +680,7 @@
           </svg>
         </button>
         <button
-          class="np-extra-btn"
+          class="np-extra-btn press"
           id="npEq"
           onclick="openEq()"
           aria-label="Эквалайзер"
@@ -580,7 +698,7 @@
           </svg>
         </button>
         <button
-          class="np-extra-btn like"
+          class="np-extra-btn like press"
           id="npLike"
           onclick="toggleLikeCurrent()"
           aria-label="В любимые"
@@ -601,7 +719,7 @@
       </div>
     </div>
 
-    <!-- QUEUE BOTTOM SHEET -->
+    <!-- QUEUE SHEET -->
     <div class="bottom-sheet" id="queueSheet">
       <div class="bs-backdrop" onclick="closeQueue()"></div>
       <div class="bs-panel glass">
@@ -611,7 +729,7 @@
       </div>
     </div>
 
-    <!-- EQ BOTTOM SHEET -->
+    <!-- EQ SHEET -->
     <div class="bottom-sheet" id="eqSheet">
       <div class="bs-backdrop" onclick="closeEq()"></div>
       <div class="bs-panel glass">

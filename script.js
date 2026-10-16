@@ -1,22 +1,14 @@
-/* ═══ A5000 PLAYER · SCRIPT · v1.1 · Liquid Glass ═══ */
+/* ═══ A5000 PLAYER · SCRIPT · v2.0 · Matte Premium ═══ */
 
 const TRACKS = [
-  { id:'01', file:'01-vernulsya.mp3', cover:'01-vernulsya.webp', title:'Вернулся — забери своё', feat:'', year:2026, duration:'3:16',
-    color:'#ff1493', color2:'#ff6b00', keyMoments:[0.12,0.38,0.72] },
-  { id:'02', file:'02-moy-vtoroy.mp3', cover:'02-moy-vtoroy.webp', title:'Мой второй', feat:'', year:2026, duration:'3:02',
-    color:'#5a9bff', color2:'#a855f7', keyMoments:[0.15,0.45] },
-  { id:'03', file:'03-villa.mp3', cover:'03-villa.webp', title:'The Villa', feat:'Блогерский Бит', year:2026, duration:'2:31',
-    color:'#00ffff', color2:'#0080ff', keyMoments:[0.10,0.35,0.65,0.85] },
-  { id:'04', file:'04-rozovoe-vino-3.mp3', cover:'04-rozovoe-vino-3.webp', title:'Розовое вино 3', feat:'Блогерский Бит', year:2026, duration:'4:06',
-    color:'#ff006e', color2:'#c2006e', keyMoments:[0.18,0.42,0.70] },
-  { id:'05', file:'05-krest.mp3', cover:'05-krest.webp', title:'Крест', feat:'', year:2026, duration:'3:20',
-    color:'#8a2be2', color2:'#4b0082', keyMoments:[0.20,0.55] },
-  { id:'06', file:'06-gta.mp3', cover:'06-gta.webp', title:'GTA / Новый этап 1', feat:'', year:2026, duration:'3:16',
-    color:'#ff6b00', color2:'#ff0044', keyMoments:[0.14,0.40,0.68] },
-  { id:'07', file:'07-i-ya-tak-zhivu.mp3', cover:'07-i-ya-tak-zhivu.webp', title:'И я так живу', feat:'', year:2026, duration:'3:16',
-    color:'#ffd700', color2:'#ff9500', keyMoments:[0.12,0.36,0.60] },
-  { id:'08', file:'08-silence.mp3', cover:'08-silence.webp', title:'Тишина (Silence)', feat:'', year:2026, duration:'3:00',
-    color:'#00ffaa', color2:'#0088ff', keyMoments:[0.25,0.50,0.75] }
+  { id:'01', file:'01-vernulsya.mp3', cover:'01-vernulsya.webp', title:'Вернулся — забери своё', feat:'', year:2026, duration:'3:16', color:'#ff1493', color2:'#ff6b00', keyMoments:[0.12,0.38,0.72] },
+  { id:'02', file:'02-moy-vtoroy.mp3', cover:'02-moy-vtoroy.webp', title:'Мой второй', feat:'', year:2026, duration:'3:02', color:'#5a9bff', color2:'#a855f7', keyMoments:[0.15,0.45] },
+  { id:'03', file:'03-villa.mp3', cover:'03-villa.webp', title:'The Villa', feat:'Блогерский Бит', year:2026, duration:'2:31', color:'#00ffff', color2:'#0080ff', keyMoments:[0.10,0.35,0.65,0.85] },
+  { id:'04', file:'04-rozovoe-vino-3.mp3', cover:'04-rozovoe-vino-3.webp', title:'Розовое вино 3', feat:'Блогерский Бит', year:2026, duration:'4:06', color:'#ff006e', color2:'#c2006e', keyMoments:[0.18,0.42,0.70] },
+  { id:'05', file:'05-krest.mp3', cover:'05-krest.webp', title:'Крест', feat:'', year:2026, duration:'3:20', color:'#8a2be2', color2:'#4b0082', keyMoments:[0.20,0.55] },
+  { id:'06', file:'06-gta.mp3', cover:'06-gta.webp', title:'GTA / Новый этап 1', feat:'', year:2026, duration:'3:16', color:'#ff6b00', color2:'#ff0044', keyMoments:[0.14,0.40,0.68] },
+  { id:'07', file:'07-i-ya-tak-zhivu.mp3', cover:'07-i-ya-tak-zhivu.webp', title:'И я так живу', feat:'', year:2026, duration:'3:16', color:'#ffd700', color2:'#ff9500', keyMoments:[0.12,0.36,0.60] },
+  { id:'08', file:'08-silence.mp3', cover:'08-silence.webp', title:'Тишина (Silence)', feat:'', year:2026, duration:'3:00', color:'#00ffaa', color2:'#0088ff', keyMoments:[0.25,0.50,0.75] }
 ];
 
 const state = {
@@ -30,8 +22,12 @@ const state = {
   theme: localStorage.getItem('a5000_theme') || 'auto',
   eq: localStorage.getItem('a5000_eq') || 'flat',
   mood: null,
-  queue: [],
-  queuePos: 0
+  queue: [], queuePos: 0,
+  // Гео для sunrise/sunset
+  lat: parseFloat(localStorage.getItem('a5000_lat') || '0'),
+  lon: parseFloat(localStorage.getItem('a5000_lon') || '0'),
+  sunrise: parseInt(localStorage.getItem('a5000_sunrise') || '6', 10),
+  sunset: parseInt(localStorage.getItem('a5000_sunset') || '20', 10)
 };
 
 const SORTS = [
@@ -49,18 +45,17 @@ const MOODS = [
 ];
 
 const EQ_PRESETS = [
-  { id:'flat',   name:'Ровно' },
-  { id:'bass',   name:'Бас' },
-  { id:'vocal',  name:'Вокал' },
-  { id:'classic',name:'Классика' }
+  { id:'flat', name:'Ровно' },
+  { id:'bass', name:'Бас' },
+  { id:'vocal', name:'Вокал' },
+  { id:'classic', name:'Классика' }
 ];
 
 const $ = id => document.getElementById(id);
 const audio = $('audio');
 const els = {
-  splash:$('splash'), app:$('app'), greeting:$('greetingText'),
-  moodTint:$('moodTint'), moodBadge:$('moodBadge'),
-  moodBadgeEmoji:$('moodBadgeEmoji'), moodBadgeName:$('moodBadgeName'),
+  splash:$('splash'), app:$('app'), greeting:$('greetingText'), themeHint:$('themeHint'),
+  moodTint:$('moodTint'),
   recentRow:$('recentRow'), topTracks:$('topTracks'), moodGrid:$('moodGrid'),
   searchInput:$('searchInput'), searchClear:$('searchClear'),
   searchEmpty:$('searchEmpty'), searchResults:$('searchResults'),
@@ -82,7 +77,8 @@ const els = {
   statTotalPlays:$('statTotalPlays'), statTopTrack:$('statTopTrack'), statLiked:$('statLiked'),
   queueSheet:$('queueSheet'), queueList:$('queueList'),
   eqSheet:$('eqSheet'), eqPresets:$('eqPresets'),
-  themeSeg:$('themeSeg')
+  themeSeg:$('themeSeg'), themeBtnIcon:$('themeBtnIcon'),
+  themeMeta:$('themeMeta'), installRow:$('installRow')
 };
 
 /* ═══ УТИЛИТЫ ═══ */
@@ -92,6 +88,11 @@ function vibrate(p){ if(state.vibrate && navigator.vibrate) navigator.vibrate(p)
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function plural(n,one,few,many){ const m10=n%10,m100=n%100; if(m10===1&&m100!==11)return one; if(m10>=2&&m10<=4&&(m100<10||m100>=20))return few; return many; }
 function toast(msg){ els.toast.textContent=msg; els.toast.classList.add('show'); clearTimeout(window.__toastT); window.__toastT=setTimeout(()=>els.toast.classList.remove('show'),2200); }
+
+/* Глобальная вибрация на любую кнопку .press */
+document.addEventListener('pointerdown', e=>{
+  if (e.target.closest('.press, .nav-item, .track-item, .qa-btn')) vibrate(6);
+}, { passive: true });
 
 /* ═══ SVG-ОБЛОЖКА ═══ */
 function makeCoverSVG(t, size=320){
@@ -106,7 +107,7 @@ function makeCoverSVG(t, size=320){
         <stop offset="100%" stop-color="${a2}" stop-opacity="0.08"/>
       </linearGradient>
       <radialGradient id="${gid}_r" cx="50%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="${a1}" stop-opacity="0.42"/>
+        <stop offset="0%" stop-color="${a1}" stop-opacity="0.4"/>
         <stop offset="100%" stop-color="#000" stop-opacity="0"/>
       </radialGradient>
     </defs>
@@ -121,7 +122,6 @@ function makeCoverSVG(t, size=320){
   </svg>`;
 }
 
-/* ═══ ПРЕДЗАГРУЗКА ОБЛОЖЕК (лечит главную) ═══ */
 function preloadCovers(){
   return Promise.all(TRACKS.map(t => new Promise(resolve => {
     const img = new Image();
@@ -140,20 +140,17 @@ function coverHTML(t, size=200){
 
 function hydrateCover(el, t, size=320){
   if (!el) return;
-  if (state.coverCache[t.id] === true) {
-    el.innerHTML = `<img src="./covers/${t.cover}" alt="${esc(t.title)}" loading="lazy">`;
-  } else {
-    el.innerHTML = makeCoverSVG(t, size);
-  }
+  el.innerHTML = state.coverCache[t.id] === true
+    ? `<img src="./covers/${t.cover}" alt="${esc(t.title)}" loading="lazy">`
+    : makeCoverSVG(t, size);
 }
 
-/* ═══ ЦВЕТ ТРЕКА (применяется к NP + мини-плееру) ═══ */
+/* ═══ ЦВЕТ ТРЕКА ═══ */
 function applyTrackColor(t){
-  const root = document.documentElement;
-  root.style.setProperty('--track-color', t.color || '#ff1493');
-  root.style.setProperty('--track-color-2', t.color2 || '#00ffff');
-  els.np.style.setProperty('--track-color', t.color || '#ff1493');
-  els.np.style.setProperty('--track-color-2', t.color2 || '#00ffff');
+  const c1 = t.color || '#ff1493';
+  const c2 = t.color2 || '#00ffff';
+  document.documentElement.style.setProperty('--track-color', c1);
+  document.documentElement.style.setProperty('--track-color-2', c2);
 }
 
 /* ═══ MOOD ═══ */
@@ -161,37 +158,108 @@ function applyMood(mood){
   state.mood = mood;
   if (mood) {
     document.body.dataset.mood = mood.id;
-    els.moodBadge.style.display = 'flex';
-    els.moodBadgeEmoji.textContent = mood.emoji;
-    els.moodBadgeName.textContent = mood.title;
+    // Обновляем бейдж на главной если он есть
   } else {
     delete document.body.dataset.mood;
-    els.moodBadge.style.display = 'none';
   }
 }
-function clearMood(){
-  applyMood(null);
-  toast('Настроение сброшено');
-  vibrate(8);
+
+/* ═══ ТЕМА (время + локация) ═══ */
+function getCurrentHourDecimal(){
+  const now = new Date();
+  return now.getHours() + now.getMinutes() / 60;
 }
 
-/* ═══ ТЕМА ═══ */
+function resolveAutoTheme(){
+  // Если нет координат — ориентируемся на локальное время
+  const h = getCurrentHourDecimal();
+  const sunrise = state.sunrise;
+  const sunset = state.sunset;
+  // День = между рассветом и закатом
+  return (h >= sunrise && h < sunset) ? 'light' : 'dark';
+}
+
 function applyTheme(){
   let theme = state.theme;
   if (theme === 'auto') {
-    const h = new Date().getHours();
-    theme = (h >= 22 || h < 6) ? 'dark' : 'dark'; // оставим тёмную по умолчанию, но можно light
-    // Простой вариант: авто = тёмная ночью, светлая днём если системная светлая
-    theme = (h >= 22 || h < 6) ? 'dark'
-      : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    theme = resolveAutoTheme();
   }
   document.documentElement.setAttribute('data-theme', theme);
-  const meta = $('themeMeta');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#000000' : '#f2f2f7');
-  els.themeSeg.querySelectorAll('.theme-seg-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.themeOpt === state.theme);
+  if (els.themeMeta) els.themeMeta.setAttribute('content', theme === 'dark' ? '#000000' : '#f4f4f7');
+
+  // Обновляем подпись под ником
+  if (els.themeHint) {
+    if (state.theme === 'auto') {
+      els.themeHint.textContent = theme === 'light' ? '☀️ ДЕНЬ · АВТО' : '🌙 НОЧЬ · АВТО';
+    } else if (state.theme === 'light') {
+      els.themeHint.textContent = '☀️ СВЕТЛАЯ ТЕМА';
+    } else {
+      els.themeHint.textContent = '🌙 ТЁМНАЯ ТЕМА';
+    }
+  }
+
+  // Иконка кнопки-переключателя
+  if (els.themeBtnIcon) {
+    if (theme === 'dark') {
+      els.themeBtnIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>';
+    } else {
+      els.themeBtnIcon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+    }
+  }
+
+  // Обновляем активную кнопку в настройках
+  if (els.themeSeg) {
+    els.themeSeg.querySelectorAll('.theme-seg-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.themeOpt === state.theme);
+    });
+  }
+}
+
+function cycleTheme(){
+  const order = ['auto', 'light', 'dark'];
+  const i = order.indexOf(state.theme);
+  state.theme = order[(i + 1) % order.length];
+  localStorage.setItem('a5000_theme', state.theme);
+  applyTheme();
+  const labels = { auto: '✨ Авто', light: '☀️ День', dark: '🌙 Ночь' };
+  toast(labels[state.theme]);
+  vibrate(10);
+}
+
+/* Запрос локации для определения рассвета/заката */
+async function updateSunTimes(){
+  // Fallback: если нет доступа к геолокации, оставляем 6/20
+  if (!navigator.geolocation) return;
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(async pos => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        state.lat = latitude;
+        state.lon = longitude;
+        localStorage.setItem('a5000_lat', latitude);
+        localStorage.setItem('a5000_lon', longitude);
+
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('sun fetch fail');
+        const data = await res.json();
+        if (data.daily && data.daily.sunrise && data.daily.sunrise[0]) {
+          const sunrise = new Date(data.daily.sunrise[0]);
+          const sunset = new Date(data.daily.sunset[0]);
+          state.sunrise = sunrise.getHours() + sunrise.getMinutes() / 60;
+          state.sunset = sunset.getHours() + sunset.getMinutes() / 60;
+          localStorage.setItem('a5000_sunrise', Math.round(state.sunrise));
+          localStorage.setItem('a5000_sunset', Math.round(state.sunset));
+          applyTheme();
+        }
+      } catch (e) {
+        // Игнорируем, остаёмся на 6/20
+      }
+      resolve();
+    }, () => resolve(), { timeout: 4000, maximumAge: 3600000 });
   });
 }
+
 els.themeSeg.querySelectorAll('.theme-seg-btn').forEach(b => {
   b.addEventListener('click', () => {
     state.theme = b.dataset.themeOpt;
@@ -200,16 +268,18 @@ els.themeSeg.querySelectorAll('.theme-seg-btn').forEach(b => {
     vibrate(8);
   });
 });
-setInterval(applyTheme, 5 * 60 * 1000);
 
-/* ═══ РЕНДЕР СПИСКОВ ═══ */
+// Пересчёт автотемы каждые 2 минуты
+setInterval(() => { if (state.theme === 'auto') applyTheme(); }, 120000);
+
+/* ═══ РЕНДЕР ═══ */
 function trackListHTML(tracks){
   return tracks.map((t,i)=>{
     const idx = TRACKS.indexOf(t);
     const liked = state.liked.includes(t.id);
     const playing = idx === state.current;
     return `
-    <div class="track-item ${playing?'playing':''}" data-idx="${idx}" style="animation-delay:${Math.min(i*30,300)}ms">
+    <div class="track-item press-soft ${playing?'playing':''}" data-idx="${idx}" style="animation-delay:${Math.min(i*30,300)}ms">
       <div class="track-cover">${coverHTML(t,100)}</div>
       <div class="track-info">
         <div class="track-name">${esc(t.title)}</div>
@@ -249,13 +319,12 @@ function getFilteredTracks(){
   return arr;
 }
 
-/* ═══ РЕНДЕР ЭКРАНОВ ═══ */
 function renderHome(){
   els.greeting.textContent = getGreeting();
   const recents = TRACKS.slice().sort((a,b)=>(state.plays[b.id]||0)-(state.plays[a.id]||0)).slice(0,6);
   els.recentRow.innerHTML = recents.map(t=>{
     const idx = TRACKS.indexOf(t);
-    return `<div class="recent-card" data-idx="${idx}">
+    return `<div class="recent-card press-soft" data-idx="${idx}">
       <div class="recent-cover">${coverHTML(t,260)}</div>
       <div class="recent-name">${esc(t.title)}</div>
       <div class="recent-feat">${t.feat ? 'feat. '+esc(t.feat) : 'A5000'}</div>
@@ -264,7 +333,7 @@ function renderHome(){
   const top = TRACKS.slice().sort((a,b)=>(state.plays[b.id]||0)-(state.plays[a.id]||0)).slice(0,5);
   els.topTracks.innerHTML = trackListHTML(top);
   els.moodGrid.innerHTML = MOODS.map(m=>`
-    <div class="mood-card" data-mood="${m.id}" style="background:${m.bg}">
+    <div class="mood-card press-soft" data-mood="${m.id}" style="background:${m.bg}">
       <div class="mood-emoji">${m.emoji}</div>
       <div>
         <div class="mood-title">${m.title}</div>
@@ -345,7 +414,7 @@ function bindMoodClicks(){
 /* ═══ ПОИСК ═══ */
 function initSearch(){
   els.suggestChips.innerHTML = ['Вилла','Крест','Тишина','GTA','Розовое','Блогерский']
-    .map(s=>`<button class="chip" data-suggest="${s}">${s}</button>`).join('');
+    .map(s=>`<button class="chip press" data-suggest="${s}">${s}</button>`).join('');
   els.suggestChips.querySelectorAll('[data-suggest]').forEach(c=>{
     c.addEventListener('click', ()=>{ els.searchInput.value = c.dataset.suggest; doSearch(); });
   });
@@ -355,7 +424,7 @@ function initSearch(){
     { name:'Для души', bg:'linear-gradient(135deg,#00aaff,#00ffff)' },
     { name:'Хип-хоп',  bg:'linear-gradient(135deg,#ff9500,#ffd700)' }
   ];
-  els.genreGrid.innerHTML = genres.map(g=>`<div class="genre-card" style="background:${g.bg}">${g.name}</div>`).join('');
+  els.genreGrid.innerHTML = genres.map(g=>`<div class="genre-card press-soft" style="background:${g.bg}">${g.name}</div>`).join('');
   els.searchInput.addEventListener('input', doSearch);
 }
 
@@ -399,6 +468,7 @@ function openSettings(){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active', s.dataset.screen === 'settings'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   renderSettings();
+  updateInstallRow();
 }
 function closeSettings(){ navigate('home'); }
 
@@ -408,7 +478,6 @@ function playTrack(idx, context){
   const t = TRACKS[idx];
   if (!t) return;
 
-  // Queue: если контекст передан, используем его; иначе — вся библиотека
   if (context && context.length) {
     state.queue = context.slice();
   } else if (!state.queue.length) {
@@ -508,7 +577,7 @@ function toggleLike(id){
   const i = state.liked.indexOf(id);
   if (i === -1) state.liked.push(id); else state.liked.splice(i,1);
   localStorage.setItem('a5000_liked', JSON.stringify(state.liked));
-  vibrate(10);
+  vibrate(12);
   document.querySelectorAll(`[data-like="${id}"]`).forEach(btn=>{
     const liked = state.liked.includes(id);
     btn.classList.toggle('liked', liked);
@@ -526,7 +595,7 @@ function updateLikeButton(){
   els.npLikeIcon.setAttribute('fill', liked ? 'currentColor' : 'none');
 }
 
-/* ═══ ОБНОВЛЕНИЕ UI ═══ */
+/* ═══ UI UPDATE ═══ */
 function updateUIForTrack(t, animate){
   hydrateCover(els.mpCover, t, 96);
   els.mpTitle.textContent = t.title;
@@ -543,13 +612,9 @@ function updateUIForTrack(t, animate){
   els.npProgressFill.style.width = '0%';
   els.npProgressKnob.style.left = '0%';
 
-  // Точки ключевых моментов
   els.npProgressDots.innerHTML = (t.keyMoments || []).map(p =>
     `<i style="left:${(p*100).toFixed(1)}%"></i>`
   ).join('');
-
-  // BG градиент от цвета трека (фон задаётся через CSS, здесь только подстраховка)
-  els.npBg.style.backgroundImage = '';
 
   updateLikeButton();
   els.npShuffle.classList.toggle('active', state.shuffle);
@@ -640,7 +705,7 @@ audio.addEventListener('ended', ()=>{
   bar.addEventListener('pointercancel', ()=>{ dragging = false; bar.classList.remove('dragging'); });
 })();
 
-/* ═══ ФИЛЬТРЫ / СОРТИРОВКА / VIEW ═══ */
+/* ═══ ФИЛЬТРЫ ═══ */
 els.filterRow.querySelectorAll('.chip').forEach(c=>{
   c.addEventListener('click', ()=>{
     els.filterRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
@@ -663,7 +728,7 @@ function cycleSort(){
   vibrate(6);
 }
 
-/* ═══ SETTINGS ═══ */
+/* ═══ SETTINGS toggles ═══ */
 $('toggleVibrate').addEventListener('click', ()=>{
   state.vibrate = !state.vibrate;
   localStorage.setItem('a5000_vibrate', state.vibrate ? 'on' : 'off');
@@ -696,12 +761,8 @@ document.addEventListener('visibilitychange', ()=>{
   if (document.visibilityState === 'visible' && state.wake) requestWakeLock();
 });
 
-/* ═══ QUEUE BOTTOM SHEET ═══ */
-function openQueue(){
-  renderQueue();
-  els.queueSheet.classList.add('open');
-  vibrate(8);
-}
+/* ═══ QUEUE ═══ */
+function openQueue(){ renderQueue(); els.queueSheet.classList.add('open'); vibrate(8); }
 function closeQueue(){ els.queueSheet.classList.remove('open'); }
 function renderQueue(){
   if (!state.queue.length) {
@@ -716,16 +777,12 @@ function renderQueue(){
   bindTrackClicks(els.queueList);
 }
 
-/* ═══ EQ BOTTOM SHEET ═══ */
-function openEq(){
-  renderEq();
-  els.eqSheet.classList.add('open');
-  vibrate(8);
-}
+/* ═══ EQ ═══ */
+function openEq(){ renderEq(); els.eqSheet.classList.add('open'); vibrate(8); }
 function closeEq(){ els.eqSheet.classList.remove('open'); }
 function renderEq(){
   els.eqPresets.innerHTML = EQ_PRESETS.map(p =>
-    `<button class="eq-preset ${state.eq === p.id ? 'active' : ''}" data-eq="${p.id}">${p.name}</button>`
+    `<button class="eq-preset press ${state.eq === p.id ? 'active' : ''}" data-eq="${p.id}">${p.name}</button>`
   ).join('');
   els.eqPresets.querySelectorAll('.eq-preset').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -738,11 +795,53 @@ function renderEq(){
   });
 }
 
+/* ═══ FORCE UPDATE ═══ */
+async function forceUpdate(){
+  toast('🔄 Обновление...');
+  vibrate(15);
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    await new Promise(r => setTimeout(r, 500));
+    const url = new URL(location.href);
+    url.searchParams.set('_t', Date.now());
+    location.replace(url.toString());
+  } catch (e) {
+    location.reload();
+  }
+}
+
+/* ═══ PWA INSTALL ═══ */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  updateInstallRow();
+});
+function updateInstallRow(){
+  if (!els.installRow) return;
+  const standalone = window.matchMedia('(display-mode: standalone)').matches;
+  els.installRow.style.display = (!standalone && deferredPrompt) ? 'flex' : 'none';
+}
+async function installApp(){
+  if (!deferredPrompt) { toast('Установка недоступна'); return; }
+  deferredPrompt.prompt();
+  const res = await deferredPrompt.userChoice;
+  if (res.outcome === 'accepted') toast('📱 Установлено!');
+  deferredPrompt = null;
+  updateInstallRow();
+}
+
 /* ═══ ИНИЦИАЛИЗАЦИЯ ═══ */
 (async function init(){
   applyTheme();
 
-  // Предзагружаем обложки, чтобы главная сразу их показала
   const coversPromise = preloadCovers();
   const timeout = new Promise(r => setTimeout(r, 2500));
   await Promise.race([coversPromise, timeout]);
@@ -761,6 +860,16 @@ function renderEq(){
 
   if (audio.src) els.miniPlayer.classList.add('show');
   requestWakeLock();
+
+  // Фоновый запрос рассвета/заката (не блокирует старт)
+  updateSunTimes();
+  // Регистрация SW
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+  updateInstallRow();
 })();
 
 window.addEventListener('keydown', e=>{
