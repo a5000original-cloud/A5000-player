@@ -1,1 +1,141 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta id="themeColorMeta" name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="A5000" />
+    <title>A5000 Player</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&display=swap"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&display=swap"
+      />
+    </noscript>
+
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- ═══ SPLASH ═══ -->
+    <div id="splash">
+      <div class="splash-logo">A5000</div>
+      <div class="splash-sub">Null Null Null Music</div>
+    </div>
+
+    <!-- ═══ APP ═══ -->
+    <div class="app" id="app">
+      <header class="topbar">
+        <div class="logo">A5000</div>
+        <button class="unreleased-btn" id="unreleasedBtn" type="button">
+          🔒 Не выпущено
+        </button>
+      </header>
+
+      <main class="main">
+        <!-- NOW PLAYING -->
+        <section class="now-playing">
+          <div class="cover-wrap" id="coverWrap" data-cover=""></div>
+
+          <div class="np-info">
+            <div class="np-title" id="npTitle">—</div>
+            <div class="np-feat" id="npFeat"></div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar" id="progressBar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="time-row">
+              <span id="timeCurrent">0:00</span>
+              <span id="timeTotal">0:00</span>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button
+              class="ctrl-btn"
+              id="prevBtn"
+              type="button"
+              aria-label="Назад"
+            >
+              ⏮
+            </button>
+            <button
+              class="ctrl-btn play"
+              id="playBtn"
+              type="button"
+              aria-label="Play/Pause"
+            >
+              ▶
+            </button>
+            <button
+              class="ctrl-btn"
+              id="nextBtn"
+              type="button"
+              aria-label="Вперёд"
+            >
+              ⏭
+            </button>
+          </div>
+
+          <div class="controls-sub">
+            <button
+              class="ctrl-sub"
+              id="shuffleBtn"
+              type="button"
+              title="Перемешать"
+            >
+              🔀
+            </button>
+            <button class="ctrl-sub random-cta" id="gdeBtn" type="button">
+              Гдееееее
+            </button>
+            <button
+              class="ctrl-sub"
+              id="repeatBtn"
+              type="button"
+              title="Повтор"
+            >
+              🔁
+            </button>
+          </div>
+        </section>
+
+        <!-- LIBRARY -->
+        <section class="library">
+          <div class="lib-head">
+            <h2>Библиотека</h2>
+            <span class="lib-count" id="libCount">—</span>
+          </div>
+          <div class="track-list" id="trackList"></div>
+        </section>
+      </main>
+
+      <audio id="audio" preload="metadata"></audio>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
