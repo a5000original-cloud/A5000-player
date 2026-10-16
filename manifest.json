@@ -1,11 +1,11 @@
 {
   "name": "A5000 Player — Null Null Null Music",
   "short_name": "A5000",
-  "description": "Персональный плеер треков A5000. Премиум-звук, премиум-дизайн.",
+  "description": "Персональный плеер треков A5000. Null Null Null Music.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#000000",
