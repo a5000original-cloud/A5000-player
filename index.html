@@ -6,13 +6,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta id="themeColorMeta" name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#000000" id="themeMeta" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta name="apple-mobile-web-app-title" content="A5000" />
+    <meta name="apple-mobile-web-app-title" content="A5000 Player" />
     <title>A5000 Player</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,7 +20,7 @@
     <link
       rel="preload"
       as="style"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap"
       onload="
         this.onload = null;
         this.rel = 'stylesheet';
@@ -29,112 +29,537 @@
     <noscript>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap"
       />
     </noscript>
 
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- ═══ SPLASH ═══ -->
-    <div id="splash">
-      <div class="splash-logo">A5000</div>
-      <div class="splash-sub">Null Null Null Music</div>
+    <!-- ═══════════ SPLASH ═══════════ -->
+    <div id="splash" class="splash">
+      <div class="splash-inner">
+        <div class="splash-logo">A5000</div>
+        <div class="splash-sub">Null Null Null Music</div>
+        <div class="splash-loader"><span></span></div>
+      </div>
     </div>
 
-    <!-- ═══ APP ═══ -->
+    <!-- ═══════════ APP ═══════════ -->
     <div class="app" id="app">
-      <header class="topbar">
-        <div class="logo">A5000</div>
-        <button class="unreleased-btn" id="unreleasedBtn" type="button">
-          🔒 Не выпущено
+      <!-- HOME -->
+      <section class="screen active" id="screenHome" data-screen="home">
+        <header class="scr-header">
+          <div class="home-top">
+            <div class="brand">
+              <div class="brand-avatar">A</div>
+              <div>
+                <div class="brand-name" id="greetingText">Привет</div>
+                <div class="brand-sub">A5000 · PLAYER</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="scr-body">
+          <div class="quick-actions">
+            <button class="qa-btn qa-primary" onclick="playRandom()">
+              <span class="qa-icon">🎲</span>
+              <span class="qa-label">Гдееееее</span>
+            </button>
+            <button class="qa-btn" onclick="playAllFromStart()">
+              <span class="qa-icon">▶</span>
+              <span class="qa-label">Всё подряд</span>
+            </button>
+            <button class="qa-btn" onclick="navigate('liked')">
+              <span class="qa-icon">❤️</span>
+              <span class="qa-label">Любимые</span>
+            </button>
+          </div>
+
+          <div class="section-head">
+            <h2>Недавние</h2>
+            <button class="text-btn" onclick="navigate('library')">
+              Все →
+            </button>
+          </div>
+          <div class="recent-row" id="recentRow"></div>
+
+          <div class="section-head">
+            <h2>Топ сейчас</h2>
+          </div>
+          <div class="track-list" id="topTracks"></div>
+
+          <div class="section-head">
+            <h2>Подборки</h2>
+          </div>
+          <div class="mood-grid" id="moodGrid"></div>
+        </div>
+      </section>
+
+      <!-- SEARCH -->
+      <section class="screen" id="screenSearch" data-screen="search">
+        <header class="scr-header">
+          <div class="search-wrap">
+            <svg
+              class="search-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="search"
+              id="searchInput"
+              placeholder="Треки, фиты, годы..."
+              autocomplete="off"
+            />
+            <button
+              class="search-clear"
+              id="searchClear"
+              onclick="clearSearch()"
+            >
+              ✕
+            </button>
+          </div>
+        </header>
+        <div class="scr-body">
+          <div id="searchEmpty">
+            <div class="section-head"><h2>Популярные запросы</h2></div>
+            <div class="chip-row" id="suggestChips"></div>
+
+            <div class="section-head"><h2>Жанры</h2></div>
+            <div class="genre-grid" id="genreGrid"></div>
+          </div>
+          <div id="searchResults" style="display: none"></div>
+        </div>
+      </section>
+
+      <!-- LIBRARY -->
+      <section class="screen" id="screenLibrary" data-screen="library">
+        <header class="scr-header">
+          <h1>Библиотека</h1>
+        </header>
+        <div class="scr-body">
+          <div class="filter-row" id="filterRow">
+            <button class="chip active" data-filter="all">Все</button>
+            <button class="chip" data-filter="feat">С фитами</button>
+            <button class="chip" data-filter="solo">Соло</button>
+            <button class="chip" data-filter="liked">❤️ Любимые</button>
+          </div>
+
+          <div class="lib-controls">
+            <button class="sort-btn" onclick="cycleSort()">
+              <span class="sort-arrow">↕</span>
+              <span id="sortLabel">По номеру</span>
+            </button>
+            <div class="view-toggle">
+              <button
+                class="vt-btn active"
+                data-view="list"
+                onclick="setView('list')"
+                aria-label="Список"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <button
+                class="vt-btn"
+                data-view="grid"
+                onclick="setView('grid')"
+                aria-label="Сетка"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="track-list" id="libraryTracks"></div>
+          <div class="track-grid" id="libraryGrid" style="display: none"></div>
+        </div>
+      </section>
+
+      <!-- LIKED -->
+      <section class="screen" id="screenLiked" data-screen="liked">
+        <header class="scr-header">
+          <h1>❤️ Любимые</h1>
+          <span class="scr-count" id="likedCount">0</span>
+        </header>
+        <div class="scr-body">
+          <div class="track-list" id="likedTracks"></div>
+          <div class="empty" id="likedEmpty" style="display: none">
+            <div class="empty-icon">💔</div>
+            <div class="empty-title">Пока пусто</div>
+            <div class="empty-sub">
+              Нажми ❤️ на любом треке, чтобы добавить его сюда
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="screen" id="screenSettings" data-screen="settings">
+        <header class="scr-header">
+          <button class="icon-btn" onclick="closeSettings()" aria-label="Назад">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1>Настройки</h1>
+        </header>
+        <div class="scr-body">
+          <div class="settings-block">
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-title">Вибрация</div>
+                <div class="setting-sub">Тактильный отклик</div>
+              </div>
+              <button class="toggle on" id="toggleVibrate"></button>
+            </div>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-title">Wake Lock</div>
+                <div class="setting-sub">
+                  Не гасить экран при воспроизведении
+                </div>
+              </div>
+              <button class="toggle on" id="toggleWake"></button>
+            </div>
+          </div>
+
+          <div class="settings-block">
+            <div class="settings-title">Статистика</div>
+            <div class="stats-mini">
+              <div class="stat-mini">
+                <div class="sm-val" id="statTotalPlays">0</div>
+                <div class="sm-lbl">Прослушиваний</div>
+              </div>
+              <div class="stat-mini">
+                <div class="sm-val" id="statTopTrack">—</div>
+                <div class="sm-lbl">Топ трек</div>
+              </div>
+              <div class="stat-mini">
+                <div class="sm-val" id="statLiked">0</div>
+                <div class="sm-lbl">Любимых</div>
+              </div>
+            </div>
+            <button class="settings-btn danger" onclick="resetStats()">
+              Сбросить статистику
+            </button>
+          </div>
+
+          <div class="settings-block">
+            <div class="settings-title">О приложении</div>
+            <div class="about-text">
+              A5000 Player · v1.0<br />
+              A5000 Labs · 2026 · Симферополь<br />
+              <span
+                style="
+                  color: var(--text-3);
+                  font-size: 11px;
+                  display: block;
+                  margin-top: 8px;
+                "
+                >Null Null Null Music</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MINI PLAYER -->
+      <div class="mini-player" id="miniPlayer" onclick="openNowPlaying()">
+        <div class="mp-cover" id="mpCover"></div>
+        <div class="mp-info">
+          <div class="mp-title" id="mpTitle">Выбери трек</div>
+          <div class="mp-feat" id="mpFeat">A5000</div>
+        </div>
+        <div class="mp-progress" id="mpProgress"></div>
+        <div class="mp-controls">
+          <button
+            class="mp-btn"
+            id="mpPrev"
+            onclick="
+              event.stopPropagation();
+              prevTrack();
+            "
+            aria-label="Назад"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 6h2v12H6zM9.5 12l8.5 6V6z" />
+            </svg>
+          </button>
+          <button
+            class="mp-btn mp-play"
+            id="mpPlay"
+            onclick="
+              event.stopPropagation();
+              togglePlay();
+            "
+            aria-label="Play"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" id="mpPlayIcon">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+          <button
+            class="mp-btn"
+            id="mpNext"
+            onclick="
+              event.stopPropagation();
+              nextTrack();
+            "
+            aria-label="Вперёд"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- BOTTOM NAV -->
+      <nav class="bottom-nav">
+        <button
+          class="nav-item active"
+          data-nav="home"
+          onclick="navigate('home')"
+        >
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M3 10l9-7 9 7v10a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2z"
+            />
+          </svg>
+          <span class="nav-label">Главная</span>
         </button>
-      </header>
-
-      <main class="main">
-        <!-- NOW PLAYING -->
-        <section class="now-playing">
-          <div class="cover-wrap" id="coverWrap" data-cover=""></div>
-
-          <div class="np-info">
-            <div class="np-title" id="npTitle">—</div>
-            <div class="np-feat" id="npFeat"></div>
-          </div>
-
-          <div class="progress-wrap">
-            <div class="progress-bar" id="progressBar">
-              <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="time-row">
-              <span id="timeCurrent">0:00</span>
-              <span id="timeTotal">0:00</span>
-            </div>
-          </div>
-
-          <div class="controls">
-            <button
-              class="ctrl-btn"
-              id="prevBtn"
-              type="button"
-              aria-label="Назад"
-            >
-              ⏮
-            </button>
-            <button
-              class="ctrl-btn play"
-              id="playBtn"
-              type="button"
-              aria-label="Play/Pause"
-            >
-              ▶
-            </button>
-            <button
-              class="ctrl-btn"
-              id="nextBtn"
-              type="button"
-              aria-label="Вперёд"
-            >
-              ⏭
-            </button>
-          </div>
-
-          <div class="controls-sub">
-            <button
-              class="ctrl-sub"
-              id="shuffleBtn"
-              type="button"
-              title="Перемешать"
-            >
-              🔀
-            </button>
-            <button class="ctrl-sub random-cta" id="gdeBtn" type="button">
-              Гдееееее
-            </button>
-            <button
-              class="ctrl-sub"
-              id="repeatBtn"
-              type="button"
-              title="Повтор"
-            >
-              🔁
-            </button>
-          </div>
-        </section>
-
-        <!-- LIBRARY -->
-        <section class="library">
-          <div class="lib-head">
-            <h2>Библиотека</h2>
-            <span class="lib-count" id="libCount">—</span>
-          </div>
-          <div class="track-list" id="trackList"></div>
-        </section>
-      </main>
-
-      <audio id="audio" preload="metadata"></audio>
+        <button class="nav-item" data-nav="search" onclick="navigate('search')">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <span class="nav-label">Поиск</span>
+        </button>
+        <button
+          class="nav-item"
+          data-nav="library"
+          onclick="navigate('library')"
+        >
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 3h4v18H4zM10 3h4v18h-4zM17 4l3 17-3 .5z" />
+          </svg>
+          <span class="nav-label">Медиатека</span>
+        </button>
+        <button class="nav-item" data-nav="liked" onclick="navigate('liked')">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12 21s-7-4.7-9.3-8.5C1 9.8 2.5 6 6 6c2 0 3.3 1.2 4 2.5.7-1.3 2-2.5 4-2.5 3.5 0 5 3.8 3.3 6.5C19 16.3 12 21 12 21z"
+            />
+          </svg>
+          <span class="nav-label">Любимые</span>
+        </button>
+      </nav>
     </div>
 
-    <div class="toast" id="toast" role="status"></div>
+    <!-- ═══════════ NOW PLAYING (полноэкранный) ═══════════ -->
+    <div class="now-playing" id="nowPlaying">
+      <div class="np-bg" id="npBg"></div>
+      <div class="np-vignette"></div>
+
+      <div class="np-header">
+        <button
+          class="np-icon-btn"
+          onclick="closeNowPlaying()"
+          aria-label="Свернуть"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        <div class="np-header-info">
+          <div class="np-header-lbl">Играет сейчас</div>
+          <div class="np-header-name" id="npHeaderName">—</div>
+        </div>
+        <button class="np-icon-btn" onclick="openSettings()" aria-label="Ещё">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="19" cy="12" r="2" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="np-cover-wrap">
+        <div class="np-cover" id="npCover"></div>
+      </div>
+
+      <div class="np-info">
+        <div class="np-title" id="npTitle">—</div>
+        <div class="np-feat" id="npFeat"></div>
+      </div>
+
+      <div class="np-progress">
+        <div class="np-progress-bar" id="npProgressBar">
+          <div class="np-progress-fill" id="npProgressFill"></div>
+          <div class="np-progress-knob" id="npProgressKnob"></div>
+        </div>
+        <div class="np-time-row">
+          <span id="npTimeCurrent">0:00</span>
+          <span id="npTimeTotal">0:00</span>
+        </div>
+      </div>
+
+      <div class="np-controls">
+        <button
+          class="np-ctrl np-ctrl-sm"
+          id="npShuffle"
+          onclick="toggleShuffle()"
+          aria-label="Перемешать"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M16 3h5v5M4 20l17-17M21 16v5h-5M15 15l6 6M4 4l5 5" />
+          </svg>
+        </button>
+        <button class="np-ctrl" onclick="prevTrack()" aria-label="Назад">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h2v12H6zM9.5 12l8.5 6V6z" />
+          </svg>
+        </button>
+        <button
+          class="np-ctrl np-ctrl-play"
+          id="npPlay"
+          onclick="togglePlay()"
+          aria-label="Play"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" id="npPlayIcon">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </button>
+        <button class="np-ctrl" onclick="nextTrack()" aria-label="Вперёд">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z" />
+          </svg>
+        </button>
+        <button
+          class="np-ctrl np-ctrl-sm"
+          id="npRepeat"
+          onclick="cycleRepeat()"
+          aria-label="Повтор"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M17 1l4 4-4 4" />
+            <path d="M3 11V9a4 4 0 014-4h14" />
+            <path d="M7 23l-4-4 4-4" />
+            <path d="M21 13v2a4 4 0 01-4 4H3" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="np-actions">
+        <button class="np-action" id="npLike" onclick="toggleLikeCurrent()">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            id="npLikeIcon"
+          >
+            <path
+              d="M12 21s-7-4.7-9.3-8.5C1 9.8 2.5 6 6 6c2 0 3.3 1.2 4 2.5.7-1.3 2-2.5 4-2.5 3.5 0 5 3.8 3.3 6.5C19 16.3 12 21 12 21z"
+            />
+          </svg>
+          <span id="npLikeLabel">В любимые</span>
+        </button>
+        <button class="np-action" onclick="playRandom()">
+          <span style="font-size: 22px">🎲</span>
+          <span>Гдееееее</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════ TOAST ═══════════ -->
+    <div class="toast" id="toast"></div>
+
+    <audio id="audio" preload="metadata"></audio>
 
     <script src="./script.js"></script>
   </body>
