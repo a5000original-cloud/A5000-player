@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v10';
 const CACHE_NAME = 'a5000-player-' + CACHE_VERSION;
 
 const PRECACHE = [
@@ -6,8 +6,7 @@ const PRECACHE = [
   './index.html',
   './style.css',
   './script.js',
-  './manifest.json',
-  './icon.svg'
+  './manifest.json'
 ];
 
 self.addEventListener('install', e => {
@@ -33,7 +32,6 @@ self.addEventListener('fetch', e => {
   const url = new URL(request.url);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-  // Аудио — cache-first (тяжёлые файлы)
   if (url.pathname.match(/\.(mp3|wav|flac|m4a|ogg)$/i)) {
     e.respondWith(
       caches.match(request).then(cached => cached || fetch(request).then(res => {
@@ -47,7 +45,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Обложки — cache-first
   if (url.pathname.match(/\.(png|jpe?g|webp|gif|svg|ico)$/i)) {
     e.respondWith(
       caches.match(request).then(cached => cached || fetch(request).then(res => {
@@ -56,12 +53,11 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE_NAME).then(c => c.put(request, clone));
         }
         return res;
-      }).catch(() => cached))
+      }).catch(() => cached || new Response('', { status: 404 })))
     );
     return;
   }
 
-  // HTML/JS/CSS — network-first с фоллбэком
   if (request.mode === 'navigate' || url.pathname.endsWith('.html') ||
       url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
     e.respondWith(
