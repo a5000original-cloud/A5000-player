@@ -1,4 +1,4 @@
-/* ═══ A5000 PLAYER · SCRIPT · MASTER EDITION ═══ */
+/* ═══ A5000 PLAYER · SCRIPT · FINAL EDITION ═══ */
 
 const WALLPAPERS = {
   rebel:   'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop',
@@ -271,12 +271,13 @@ function openEq(){
 }
 function closeEq(){ if (els.eqSheet) els.eqSheet.classList.remove('open'); }
 
-/* ═══════════════════════════════════════════════════════════
-   🎨 ВИЗУАЛИЗАТОР (Адаптирован под новые размеры)
-   ═══════════════════════════════════════════════════════════ */
+/* ═══ ВИЗУАЛИЗАТОР (ОПТИМИЗИРОВАН) ═══ */
 let vizRunning = false, vizRAF = null, vizLast = 0, vizRot = 0, vizAGC = 0.1, vizTime = 0;
 let vizCtx = null, vizSize = { w: 0, h: 0 };
-const FPS = (navigator.hardwareConcurrency || 4) < 4 ? 24 : 30;
+
+// Определяем мобилку для снижения нагрузки
+const isMobile = window.innerWidth < 900;
+const FPS = isMobile ? 24 : 30; 
 const VIZ_INTERVAL = 1000 / FPS;
 
 function prepareViz(){
@@ -312,7 +313,7 @@ function drawViz(){
   const w = vizSize.w, h = vizSize.h; vizCtx.clearRect(0, 0, w, h);
   const cx = w / 2, cy = h / 2;
   
-  let baseR = Math.min(w, h) * 0.35; // Fallback
+  let baseR = Math.min(w, h) * 0.35;
   if (els.npCover) {
     const coverW = els.npCover.offsetWidth, canvasW = els.visualizer.offsetWidth;
     if (canvasW > 0) baseR = (coverW / 2) * (w / canvasW) + 4;
@@ -543,7 +544,6 @@ function openNowPlaying(){
 }
 function closeNowPlaying(){ if (els.nowPlaying) els.nowPlaying.classList.remove('open'); stopViz(); vibrate(4); }
 
-/* ═══ ПРОГРЕСС & MEDIA SESSION (APPLE STYLE) ═══ */
 let lastProg = 0;
 audio.addEventListener('timeupdate', () => {
   const now = performance.now(); if (now - lastProg < 200) return; lastProg = now;
@@ -553,15 +553,8 @@ audio.addEventListener('timeupdate', () => {
   if (els.npTimeCurrent) els.npTimeCurrent.textContent = formatTime(audio.currentTime); if (els.mpProgress) els.mpProgress.style.setProperty('--mp-progress', pct + '%');
   updateLyrics();
   
-  // Синхронизация полосы на экране блокировки iOS/Android
   if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && audio.duration) {
-    try {
-      navigator.mediaSession.setPositionState({
-        duration: audio.duration,
-        playbackRate: audio.playbackRate,
-        position: audio.currentTime
-      });
-    } catch(e){}
+    try { navigator.mediaSession.setPositionState({ duration: audio.duration, playbackRate: audio.playbackRate, position: audio.currentTime }); } catch(e){}
   }
 });
 audio.addEventListener('loadedmetadata', () => { if (els.npTimeTotal) els.npTimeTotal.textContent = formatTime(audio.duration); });
@@ -591,8 +584,6 @@ function forceUpdate(){
 
 function updateMediaSession(t){
   if (!('mediaSession' in navigator)) return;
-  
-  // Формируем массив иконок разных размеров (iOS требует разные размеры)
   const artwork = [
     { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '96x96', type: 'image/webp' },
     { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '128x128', type: 'image/webp' },
@@ -601,14 +592,7 @@ function updateMediaSession(t){
     { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '384x384', type: 'image/webp' },
     { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '512x512', type: 'image/webp' }
   ];
-
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: t.title,
-    artist: t.feat ? 'A5000 × ' + t.feat : 'A5000',
-    album: t.year + ' · Null Null Null Music',
-    artwork: artwork
-  });
-
+  navigator.mediaSession.metadata = new MediaMetadata({ title: t.title, artist: t.feat ? 'A5000 × ' + t.feat : 'A5000', album: t.year + ' · Null Null Null Music', artwork: artwork });
   try {
     navigator.mediaSession.setActionHandler('play', () => { if (audio.paused) togglePlay(); });
     navigator.mediaSession.setActionHandler('pause', () => { if (!audio.paused) togglePlay(); });
@@ -620,22 +604,16 @@ function updateMediaSession(t){
   } catch(e){}
 }
 
-/* ═══ BLUETOOTH & DEVICE DETECTION ═══ */
-// Пауза при отключении наушников/колонок (как в iOS)
 if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   navigator.mediaDevices.addEventListener('devicechange', async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const hasAudioOutput = devices.some(d => d.kind === 'audiooutput');
     if (!hasAudioOutput && state.playing) {
-      audio.pause();
-      state.playing = false;
-      updatePlayIcons();
-      toast('🎧 Наушники отключены');
+      audio.pause(); state.playing = false; updatePlayIcons(); toast('🎧 Наушники отключены');
     }
   });
 }
 
-/* ═══ ИНИЦИАЛИЗАЦИЯ ═══ */
 (async function init(){
   els = {
     splash: $('splash'), app: $('app'), greetingText: $('greetingText'), themeHint: $('themeHint'), wallA: $('wallA'), wallB: $('wallB'), wallTint: $('wallTint'),
