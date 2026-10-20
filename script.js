@@ -1,4 +1,4 @@
-/* ═══ A5000 PLAYER · SCRIPT · FINAL EDITION ═══ */
+/* ═══ A5000 PLAYER · SCRIPT · APPLE EDITION ═══ */
 
 const WALLPAPERS = {
   rebel:   'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop',
@@ -8,6 +8,21 @@ const WALLPAPERS = {
   street:  'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1200&auto=format&fit=crop',
   default: 'https://images.unsplash.com/photo-1614149162883-504ce4d13909?q=80&w=1200&auto=format&fit=crop'
 };
+
+// ═══ UNIQUE TRACK BANNERS ═══
+const TRACK_BANNERS = [
+  { gradient: 'linear-gradient(135deg, #ff1493 0%, #ff6b00 50%, #ff1493 100%)', pattern: 'radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 50%)', icon: '🔥', label: 'VERNULSYA' },
+  { gradient: 'linear-gradient(135deg, #5a9bff 0%, #a855f7 100%)', pattern: 'linear-gradient(0deg, rgba(255,255,255,0.1) 0%, transparent 100%)', icon: '🌊', label: 'MOY VTOROI' },
+  { gradient: 'linear-gradient(135deg, #00ffff 0%, #0080ff 100%)', pattern: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 40px)', icon: '🏡', label: 'THE VILLA' },
+  { gradient: 'linear-gradient(135deg, #ff006e 0%, #c2006e 100%)', pattern: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.2) 0%, transparent 60%)', icon: '🍷', label: 'ROZOVOE VINO' },
+  { gradient: 'linear-gradient(180deg, #8a2be2 0%, #4b0082 100%)', pattern: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%)', icon: '✝️', label: 'KREST' },
+  { gradient: 'linear-gradient(135deg, #ff6b00 0%, #ff0044 100%)', pattern: 'repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(0,0,0,0.1) 30px, rgba(0,0,0,0.1) 60px)', icon: '🎮', label: 'GTA' },
+  { gradient: 'linear-gradient(135deg, #ffd700 0%, #ff9500 100%)', pattern: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.25) 0%, transparent 40%)', icon: '☀️', label: 'I YA TAK ZHIVU' },
+  { gradient: 'linear-gradient(135deg, #00ffaa 0%, #0088ff 100%)', pattern: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%)', icon: '🌙', label: 'SILENCE' },
+  { gradient: 'linear-gradient(135deg, #ff1493 0%, #8a2be2 100%)', pattern: 'repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(255,255,255,0.03) 10deg, transparent 20deg)', icon: '👑', label: 'TSARITSA' },
+  { gradient: 'linear-gradient(135deg, #ff3355 0%, #4400ff 100%)', pattern: 'radial-gradient(circle at 60% 40%, rgba(255,255,255,0.2) 0%, transparent 45%)', icon: '💔', label: 'FAKE-ANGRY-SAD' },
+  { gradient: 'linear-gradient(135deg, #6666ff 0%, #220044 100%)', pattern: 'linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.05) 75%)', icon: '🎹', label: '-26626' }
+];
 
 const TRACKS = [
   { id:'01', file:'01-vernulsya.mp3', cover:'01-vernulsya.webp', title:'Вернулся — забери своё', feat:'', year:2026, duration:'3:16', color:'#ff1493', color2:'#ff6b00', tags:['рэп','энергия'], viz:'fire', mode:'rebel', lrc: `[00:00.00] A5000\n[00:10.00] Вернулся — забери своё\n[00:20.00] Это новый этап` },
@@ -34,7 +49,8 @@ const state = {
   queue: [], queuePos: 0,
   lyrics: [], lyricsIdx: -1, showLyrics: false,
   sleepTimerId: null,
-  coverCache: {}
+  coverCache: {},
+  btDevice: null, btConnected: false
 };
 
 const SORTS = [
@@ -74,6 +90,103 @@ function withAlpha(color, a){
 
 document.addEventListener('pointerdown', e=>{ if (e.target.closest('button, .track-item, .recent-card, .mood-card, .tl-card')) vibrate(5); }, { passive: true });
 
+// ═══ BLUETOOTH & AUDIO DEVICE DETECTION ═══
+function detectAudioDevice() {
+  if (!navigator.mediaDevices) return null;
+  return navigator.mediaDevices.enumerateDevices().then(devices => {
+    const audioOutputs = devices.filter(d => d.kind === 'audiooutput' || d.kind === 'audioinput');
+    const bluetooth = audioOutputs.find(d => 
+      d.label.toLowerCase().includes('bluetooth') || 
+      d.label.toLowerCase().includes('bt') || 
+      d.label.toLowerCase().includes('airpods') ||
+      d.label.toLowerCase().includes('beats') ||
+      d.label.toLowerCase().includes('samsung') ||
+      d.label.toLowerCase().includes('bose') ||
+      d.label.toLowerCase().includes('sony')
+    );
+    const headphones = audioOutputs.find(d => 
+      d.label.toLowerCase().includes('headphone') || 
+      d.label.toLowerCase().includes('earbud') ||
+      d.label.toLowerCase().includes('airpod') ||
+      d.label.toLowerCase().includes(' Наушник')
+    );
+    const speakers = audioOutputs.filter(d => 
+      !d.label.toLowerCase().includes('bluetooth') && 
+      !d.label.toLowerCase().includes('headphone') &&
+      !d.label.toLowerCase().includes('earbud')
+    );
+    
+    if (bluetooth) return { type: 'bluetooth', name: bluetooth.label, icon: getBluetoothIcon(bluetooth.label) };
+    if (headphones) return { type: 'headphones', name: headphones.label, icon: '🎧' };
+    if (speakers.length > 0) return { type: 'speakers', name: speakers[0].label || 'Динамики', icon: '🔊' };
+    return { type: 'unknown', name: 'Аудиоустройство', icon: '🔊' };
+  }).catch(() => ({ type: 'unknown', name: 'Аудиоустройство', icon: '🔊' }));
+}
+
+function getBluetoothIcon(label) {
+  const l = label.toLowerCase();
+  if (l.includes('airpods') || l.includes('apple')) return '🍎';
+  if (l.includes('samsung')) return '📱';
+  if (l.includes('bose')) return '🎵';
+  if (l.includes('sony')) return '🎶';
+  if (l.includes('beats')) return '💿';
+  return '🎧';
+}
+
+function showBluetoothAnimation(device) {
+  if (!els.btOverlay) return;
+  const isConnect = device && (device.type === 'bluetooth' || device.type === 'headphones');
+  
+  els.btDeviceIcon.textContent = device ? device.icon : '🔊';
+  els.btText.textContent = isConnect ? 'Подключено' : 'Переключение аудио';
+  els.btSubtext.textContent = device ? device.name : 'Встроенные динамики';
+  els.btOverlay.classList.remove('hide');
+  els.btOverlay.classList.add('show');
+  
+  setTimeout(() => {
+    els.btOverlay.classList.remove('show');
+    els.btOverlay.classList.add('hide');
+    setTimeout(() => els.btOverlay.classList.remove('hide'), 400);
+  }, 2200);
+  
+  vibrate([30, 50, 30]);
+}
+
+function checkBluetoothConnection() {
+  detectAudioDevice().then(device => {
+    if (state.btConnected && state.btDevice && device && state.btDevice.name !== device.name) {
+      showBluetoothAnimation({ type: 'switch', name: device.name, icon: device.icon });
+    } else if (device && (device.type === 'bluetooth' || device.type === 'headphones')) {
+      showBluetoothAnimation(device);
+      state.btConnected = true;
+    }
+    state.btDevice = device;
+  });
+}
+
+// ═══ TRACK BANNER RENDERING ═══
+function renderTrackBanner(trackIdx) {
+  const banner = $('trackBanner');
+  if (!banner || trackIdx < 0 || trackIdx >= TRACKS.length) return;
+  const t = TRACKS[trackIdx];
+  const b = TRACK_BANNERS[trackIdx] || TRACK_BANNERS[0];
+  
+  banner.style.background = b.gradient;
+  if (b.pattern) {
+    banner.style.backgroundImage = b.pattern + ', ' + b.gradient;
+  }
+  banner.innerHTML = `
+    <div class="track-banner-overlay">
+      <div class="track-banner-title">${b.icon} ${b.label}</div>
+      <div class="track-banner-sub">${t.feat ? 'feat. ' + t.feat : 'A5000'} · ${t.year}</div>
+    </div>
+  `;
+}
+
+function initTrackBanners() {
+  renderTrackBanner(state.current);
+}
+
 function applyTheme(){
   let theme = state.theme;
   if (theme === 'auto') { const h = new Date().getHours(); theme = (h >= 20 || h < 6) ? 'dark' : 'light'; }
@@ -93,6 +206,10 @@ function setWallpaper(mode){
   if (wallActive >= 0) layers[wallActive].classList.remove('visible');
   wallActive = next;
 }
+function setWallTintColors(c1, c2){
+  if (!els.wallTint) return;
+  els.wallTint.style.background = `radial-gradient(circle at 20% 20%, ${c1} 0%, transparent 60%), radial-gradient(circle at 80% 80%, ${c2} 0%, transparent 60%)`;
+}
 
 let cachedC1 = '#ff1493', cachedC2 = '#00ffff';
 function applyTrackColors(t){
@@ -100,13 +217,19 @@ function applyTrackColors(t){
   document.documentElement.style.setProperty('--track-color', t.color || '#ff1493');
   document.documentElement.style.setProperty('--track-color-2', t.color2 || '#00ffff');
   cachedC1 = t.color || '#ff1493'; cachedC2 = t.color2 || '#00ffff';
+  if (els.wallTint) {
+    els.wallTint.style.background = `radial-gradient(circle at 20% 20%, ${t.color} 0%, transparent 60%), radial-gradient(circle at 80% 80%, ${t.color2} 0%, transparent 60%)`;
+  }
 }
 
 function makeCoverSVG(t, size=320){
   const s = size, gid = 'g_'+t.id, a1 = t.color || '#ff1493', a2 = t.color2 || '#00ffff';
   return `<svg viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${a1}" stop-opacity="0.5"/><stop offset="100%" stop-color="${a2}" stop-opacity="0.2"/></linearGradient><radialGradient id="${gid}_r" cx="50%" cy="30%" r="80%"><stop offset="0%" stop-color="${a1}" stop-opacity="0.7"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient></defs><rect width="${s}" height="${s}" fill="#000"/><rect width="${s}" height="${s}" fill="url(#${gid}_r)"/><rect width="${s}" height="${s}" fill="url(#${gid})"/><text x="${s/2}" y="${s*0.57}" text-anchor="middle" font-family="Bebas Neue, Impact, sans-serif" font-size="${s*0.14}" letter-spacing="${s*0.012}" fill="#fff" font-weight="900">A5000</text></svg>`;
 }
-function coverHTML(t, size=200){ return state.coverCache[t.id] === true ? `<img src="./covers/${t.cover}" alt="${esc(t.title)}" loading="lazy">` : makeCoverSVG(t, size); }
+function coverHTML(t, size=200){
+  if (!t || !t.cover) return makeCoverSVG({ id: 'x', color: '#ff1493', color2: '#00ffff' }, size);
+  return state.coverCache[t.id] === true ? `<img src="./covers/${t.cover}" alt="${esc(t.title)}" loading="lazy">` : makeCoverSVG(t, size);
+}
 function hydrateCover(el, t, size=320){ if (el) el.innerHTML = coverHTML(t, size); }
 
 async function preloadCovers(){
@@ -119,9 +242,9 @@ async function preloadCovers(){
 }
 
 function trackListHTML(tracks){
-  return tracks.map(t => {
+  return tracks.map((t, i) => {
     const idx = TRACKS.indexOf(t), liked = state.liked.includes(t.id), playing = idx === state.current;
-    return `<div class="track-item ${playing?'playing':''}" data-idx="${idx}">
+    return `<div class="track-item ${playing?'playing':''}" data-idx="${idx}" style="animation: appleStaggerIn 0.4s var(--ease-apple) ${i * 0.05}s both">
       <div class="track-cover">${coverHTML(t, 100)}</div>
       <div class="track-info"><div class="track-name">${esc(t.title)}</div><div class="track-feat">${t.feat ? 'feat. '+esc(t.feat) : 'A5000 · '+t.year}</div></div>
       <div class="track-meta"><span class="track-dur">${t.duration}</span><button class="track-like ${liked?'liked':''}" data-like="${t.id}"><svg viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-4.7-9.3-8.5C1 9.8 2.5 6 6 6c2 0 3.3 1.2 4 2.5.7-1.3 2-2.5 4-2.5 3.5 0 5 3.8 3.3 6.5C19 16.3 12 21 12 21z"/></svg></button></div>
@@ -151,7 +274,7 @@ function renderHome(){
   if (els.topTracks) { els.topTracks.innerHTML = trackListHTML(TRACKS.slice().sort((a,b)=>(state.plays[b.id]||0)-(state.plays[a.id]||0)).slice(0,5)); bindTrackClicks(els.topTracks); }
   if (els.moodGrid) {
     const moods = [{ id: 'rebel', label: 'Rebel', emoji: '🔥' },{ id: 'wine', label: 'Wine', emoji: '🍷' },{ id: 'silence', label: 'Silence', emoji: '🌙' },{ id: 'gta', label: 'GTA', emoji: '🎮' }];
-    els.moodGrid.innerHTML = moods.map(m => `<div class="mood-card" data-mood="${m.id}"><span class="mood-emoji">${m.emoji}</span><span>${m.label}</span></div>`).join('');
+    els.moodGrid.innerHTML = moods.map((m, i) => `<div class="mood-card" data-mood="${m.id}" style="animation: appleStaggerIn 0.4s var(--ease-apple) ${i * 0.1}s both"><span class="mood-emoji">${m.emoji}</span><span>${m.label}</span></div>`).join('');
     els.moodGrid.querySelectorAll('[data-mood]').forEach(btn => { btn.addEventListener('click', () => { const list = TRACKS.filter(t => t.mode === btn.dataset.mood); if (list.length) playTrack(TRACKS.indexOf(list[0]), list.map(t => TRACKS.indexOf(t))); }); });
   }
 }
@@ -271,11 +394,10 @@ function openEq(){
 }
 function closeEq(){ if (els.eqSheet) els.eqSheet.classList.remove('open'); }
 
-/* ═══ ВИЗУАЛИЗАТОР (ОПТИМИЗИРОВАН) ═══ */
+/* ═══ ВИЗУАЛИЗАТОР (ОТ ОБЛОЖКИ) ═══ */
 let vizRunning = false, vizRAF = null, vizLast = 0, vizRot = 0, vizAGC = 0.1, vizTime = 0;
-let vizCtx = null, vizSize = { w: 0, h: 0 };
+let vizCtx = null, vizSize = { w: 0, h: 0, coverW: 0, coverH: 0 };
 
-// Определяем мобилку для снижения нагрузки
 const isMobile = window.innerWidth < 900;
 const FPS = isMobile ? 24 : 30; 
 const VIZ_INTERVAL = 1000 / FPS;
@@ -283,12 +405,17 @@ const VIZ_INTERVAL = 1000 / FPS;
 function prepareViz(){
   const c = els.visualizer; if (!c) return false;
   vizCtx = c.getContext('2d', { alpha: true }); if (!vizCtx) return false;
-  const rect = c.getBoundingClientRect();
+  const cover = els.npCover;
+  if (!cover) return false;
+  const rect = cover.getBoundingClientRect();
+  const canvasRect = c.getBoundingClientRect();
+  const scale = canvasRect.width / rect.width;
+  const coverW = rect.width, coverH = rect.height;
+  const w = canvasRect.width, h = canvasRect.height;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(1, Math.round(rect.width * dpr)), h = Math.max(1, Math.round(rect.height * dpr));
-  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  if (c.width !== w * dpr || c.height !== h * dpr) { c.width = w * dpr; c.height = h * dpr; }
   vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  vizSize = { w: rect.width, h: rect.height };
+  vizSize = { w, h, coverW, coverH, scale };
   return true;
 }
 function startViz(){
@@ -309,15 +436,23 @@ function vizLoop(ts){
 function drawViz(){
   if (!vizCtx || !analyser) return;
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  // Пересчитываем размер обложки каждый кадр
+  const cover = els.npCover;
+  if (cover) {
+    const rect = cover.getBoundingClientRect();
+    const canvasRect = els.visualizer.getBoundingClientRect();
+    vizSize.coverW = rect.width;
+    vizSize.coverH = rect.height;
+    vizSize.scale = canvasRect.width / rect.width;
+    vizSize.w = canvasRect.width;
+    vizSize.h = canvasRect.height;
+  }
   const dataLen = analyser.frequencyBinCount, raw = new Uint8Array(dataLen); analyser.getByteFrequencyData(raw);
   const w = vizSize.w, h = vizSize.h; vizCtx.clearRect(0, 0, w, h);
   const cx = w / 2, cy = h / 2;
   
-  let baseR = Math.min(w, h) * 0.35;
-  if (els.npCover) {
-    const coverW = els.npCover.offsetWidth, canvasW = els.visualizer.offsetWidth;
-    if (canvasW > 0) baseR = (coverW / 2) * (w / canvasW) + 4;
-  }
+  // baseR = половина ширины обложки — лучи начинаются от края обложки
+  const baseR = vizSize.coverW * 0.5;
   
   const c1 = cachedC1, c2 = cachedC2, t = TRACKS[state.current], vizType = (t && t.viz) || 'fire';
   const N = 64, bands = new Float32Array(N);
@@ -494,13 +629,34 @@ function playTrack(idx, context){
   if (state.queuePos === -1) { state.queue = TRACKS.map((_, i) => i); state.queuePos = idx; }
   audio.src = './tracks/' + t.file; try { audio.load(); } catch(e){}
   applyTrackColors(t); setWallpaper(t.mode || 'default'); updateUIForTrack(t); loadLyrics(t);
+  renderTrackBanner(idx);
   ensureAudioRunning().then(() => { if (state.eq && state.eq !== 'flat') applyEqMode(state.eq, true); return audio.play(); })
-  .then(() => { state.playing = true; updatePlayIcons(); countPlay(t.id); if (els.nowPlaying && els.nowPlaying.classList.contains('open')) setTimeout(() => startViz(), 60); })
+  .then(() => { 
+    state.playing = true; updatePlayIcons(); countPlay(t.id); 
+    const isDesktop = window.innerWidth >= 900;
+    if (isDesktop && els.nowPlaying) {
+      els.nowPlaying.classList.add('open');
+      setTimeout(() => startViz(), 100);
+    } else if (els.nowPlaying && els.nowPlaying.classList.contains('open')) {
+      setTimeout(() => startViz(), 60);
+    }
+  })
   .catch(() => { toast('⚠ Нет файла: /tracks/' + t.file); });
 }
 function togglePlay(){
   if (!audio.src) { playTrack(state.current); return; }
-  if (audio.paused) { ensureAudioRunning().then(() => audio.play()).then(() => { state.playing = true; updatePlayIcons(); if (els.nowPlaying && els.nowPlaying.classList.contains('open')) startViz(); }).catch(()=>{}); }
+  if (audio.paused) {
+    ensureAudioRunning().then(() => audio.play()).then(() => {
+      state.playing = true; updatePlayIcons();
+      const isDesktop = window.innerWidth >= 900;
+      if (isDesktop && els.nowPlaying && !els.nowPlaying.classList.contains('open')) {
+        els.nowPlaying.classList.add('open');
+        setTimeout(() => startViz(), 100);
+      } else if (els.nowPlaying && els.nowPlaying.classList.contains('open')) {
+        startViz();
+      }
+    }).catch(()=>{});
+  }
   else { audio.pause(); state.playing = false; updatePlayIcons(); }
 }
 function countPlay(id){ state.plays[id] = (state.plays[id] || 0) + 1; localStorage.setItem('a5000_plays', JSON.stringify(state.plays)); }
@@ -526,7 +682,9 @@ function toggleShuffle(){ state.shuffle = !state.shuffle; if (els.npShuffle) els
 function cycleRepeat(){ state.repeat = (state.repeat + 1) % 3; if (els.npRepeat) els.npRepeat.classList.toggle('active', state.repeat !== 0); toast(['↩ Без повтора','🔂 Трек','🔁 Все'][state.repeat]); vibrate(6); }
 
 function updateUIForTrack(t){
-  hydrateCover(els.mpCover, t, 96); if (els.mpTitle) els.mpTitle.textContent = t.title; if (els.mpFeat) els.mpFeat.textContent = t.feat ? 'feat. ' + t.feat : 'A5000 · ' + t.year; if (els.miniPlayer) els.miniPlayer.classList.add('show');
+  const isDesktop = window.innerWidth >= 900;
+  hydrateCover(els.mpCover, t, 96); if (els.mpTitle) els.mpTitle.textContent = t.title; if (els.mpFeat) els.mpFeat.textContent = t.feat ? 'feat. ' + t.feat : 'A5000 · ' + t.year;
+  if (!isDesktop && els.miniPlayer) els.miniPlayer.classList.add('show');
   hydrateCover(els.npCover, t, 480); if (els.npTitle) els.npTitle.textContent = t.title; if (els.npArtist) els.npArtist.textContent = t.feat ? 'A5000 × ' + t.feat : 'A5000'; if (els.npAlbum) els.npAlbum.textContent = t.year + ' · Single'; if (els.npHeaderName) els.npHeaderName.textContent = t.title;
   if (els.npTimeCurrent) els.npTimeCurrent.textContent = '0:00'; if (els.npTimeTotal) els.npTimeTotal.textContent = t.duration; if (els.npProgressFill) els.npProgressFill.style.width = '0%'; if (els.npProgressKnob) els.npProgressKnob.style.left = '0%';
   updateLikeButton(); if (els.npShuffle) els.npShuffle.classList.toggle('active', state.shuffle); if (els.npRepeat) els.npRepeat.classList.toggle('active', state.repeat !== 0);
@@ -561,11 +719,14 @@ audio.addEventListener('loadedmetadata', () => { if (els.npTimeTotal) els.npTime
 audio.addEventListener('play', () => { state.playing = true; updatePlayIcons(); });
 audio.addEventListener('pause', () => { state.playing = false; updatePlayIcons(); });
 audio.addEventListener('ended', () => { if (state.repeat === 1) { audio.currentTime = 0; audio.play().catch(()=>{}); } else { nextTrack(); } });
+audio.addEventListener('error', () => { toast('⚠ Ошибка загрузки аудио файла'); state.playing = false; updatePlayIcons(); });
 
 let seeking = false;
 function seekFromEvent(e){
   if (!els.npProgressBar || !audio.duration) return;
-  const r = els.npProgressBar.getBoundingClientRect(), pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  const clientX = e.clientX ?? (e.touches && e.touches[0] && e.touches[0].clientX);
+  if (clientX == null) return;
+  const r = els.npProgressBar.getBoundingClientRect(), pct = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
   audio.currentTime = pct * audio.duration;
   if (els.npProgressFill) els.npProgressFill.style.width = (pct*100) + '%'; if (els.npProgressKnob) els.npProgressKnob.style.left = (pct*100) + '%';
   if (els.npTimeCurrent) els.npTimeCurrent.textContent = formatTime(audio.currentTime);
@@ -577,22 +738,37 @@ function resetStats(){
   updateLikeButton(); toast('Статистика сброшена');
 }
 function forceUpdate(){
-  if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-  if ('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
-  toast('Обновление...'); setTimeout(() => location.reload(true), 500);
+  if ('caches' in window) {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => {
+        toast('Кэш очищен · Обновление...');
+        setTimeout(() => { location.reload(); }, 500);
+      });
+  } else {
+    toast('Обновление...');
+    setTimeout(() => { location.reload(); }, 500);
+  }
 }
 
 function updateMediaSession(t){
   if (!('mediaSession' in navigator)) return;
+  const banner = TRACK_BANNERS[TRACKS.indexOf(t)] || TRACK_BANNERS[0];
+  const bannerUrl = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${t.color}"/><stop offset="100%" stop-color="${t.color2}"/></linearGradient></defs><rect width="512" height="512" fill="url(#g)"/><text x="256" y="280" text-anchor="middle" font-family="system-ui" font-size="64" fill="white" font-weight="900">${banner.icon}</text></svg>`)}`;
+  
   const artwork = [
-    { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '96x96', type: 'image/webp' },
-    { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '128x128', type: 'image/webp' },
-    { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '192x192', type: 'image/webp' },
-    { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '256x256', type: 'image/webp' },
-    { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '384x384', type: 'image/webp' },
-    { src: state.coverCache[t.id] ? './covers/' + t.cover : './icon-512.png', sizes: '512x512', type: 'image/webp' }
+    { src: state.coverCache[t.id] ? './covers/' + t.cover : bannerUrl, sizes: '96x96', type: state.coverCache[t.id] ? 'image/webp' : 'image/svg+xml' },
+    { src: state.coverCache[t.id] ? './covers/' + t.cover : bannerUrl, sizes: '128x128', type: state.coverCache[t.id] ? 'image/webp' : 'image/svg+xml' },
+    { src: state.coverCache[t.id] ? './covers/' + t.cover : bannerUrl, sizes: '192x192', type: state.coverCache[t.id] ? 'image/webp' : 'image/svg+xml' },
+    { src: state.coverCache[t.id] ? './covers/' + t.cover : bannerUrl, sizes: '256x256', type: state.coverCache[t.id] ? 'image/webp' : 'image/svg+xml' },
+    { src: state.coverCache[t.id] ? './covers/' + t.cover : bannerUrl, sizes: '384x384', type: state.coverCache[t.id] ? 'image/webp' : 'image/svg+xml' },
+    { src: state.coverCache[t.id] ? './covers/' + t.cover : bannerUrl, sizes: '512x512', type: state.coverCache[t.id] ? 'image/webp' : 'image/svg+xml' }
   ];
-  navigator.mediaSession.metadata = new MediaMetadata({ title: t.title, artist: t.feat ? 'A5000 × ' + t.feat : 'A5000', album: t.year + ' · Null Null Null Music', artwork: artwork });
+  navigator.mediaSession.metadata = new MediaMetadata({ 
+    title: t.title, 
+    artist: t.feat ? 'A5000 × ' + t.feat : 'A5000', 
+    album: t.year + ' · Null Null Null Music', 
+    artwork: artwork 
+  });
   try {
     navigator.mediaSession.setActionHandler('play', () => { if (audio.paused) togglePlay(); });
     navigator.mediaSession.setActionHandler('pause', () => { if (!audio.paused) togglePlay(); });
@@ -606,10 +782,26 @@ function updateMediaSession(t){
 
 if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   navigator.mediaDevices.addEventListener('devicechange', async () => {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const hasAudioOutput = devices.some(d => d.kind === 'audiooutput');
-    if (!hasAudioOutput && state.playing) {
-      audio.pause(); state.playing = false; updatePlayIcons(); toast('🎧 Наушники отключены');
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasAudioOutput = devices.some(d => d.kind === 'audiooutput');
+      
+      if (!hasAudioOutput && state.playing) {
+        audio.pause(); state.playing = false; updatePlayIcons();
+        showBluetoothAnimation(null);
+        toast('🎧 Аудиоустройство отключено');
+      } else {
+        const device = await detectAudioDevice();
+        if (device && (device.type === 'bluetooth' || device.type === 'headphones')) {
+          showBluetoothAnimation(device);
+          state.btConnected = true;
+        } else if (device && device.type === 'speakers') {
+          showBluetoothAnimation(device);
+          state.btConnected = false;
+        }
+      }
+    } catch(e) {
+      console.warn('Device change error:', e);
     }
   });
 }
@@ -625,7 +817,8 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
     npProgressBar: $('npProgressBar'), npProgressFill: $('npProgressFill'), npProgressKnob: $('npProgressKnob'), npTimeCurrent: $('npTimeCurrent'), npTimeTotal: $('npTimeTotal'),
     npPlayIcon: $('npPlayIcon'), npLyricsBtn: $('npLyricsBtn'), npLike: $('npLike'), npLikeIcon: $('npLikeIcon'), npShuffle: $('npShuffle'), npRepeat: $('npRepeat'),
     toast: $('toast'), eqSheet: $('eqSheet'), eqPresets: $('eqPresets'), themeSeg: $('themeSeg'), statTotalPlays: $('statTotalPlays'), statTopTrack: $('statTopTrack'),
-    statLiked: $('statLiked'), toggleVibrate: $('toggleVibrate')
+    statLiked: $('statLiked'), toggleVibrate: $('toggleVibrate'),
+    btOverlay: $('btOverlay'), btDeviceIcon: $('btDeviceIcon'), btText: $('btText'), btSubtext: $('btSubtext')
   };
 
   applyTheme();
@@ -645,6 +838,10 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
 
   await Promise.race([preloadCovers(), new Promise(r => setTimeout(r, 2000))]);
   renderHome(); initSearch(); updatePlayIcons(); renderLibrary(); setWallpaper('default');
+  initTrackBanners();
+
+  // Check Bluetooth on load
+  setTimeout(checkBluetoothConnection, 1500);
 
   setTimeout(() => {
     if (els.splash) els.splash.classList.add('hide'); if (els.app) els.app.classList.add('show');
@@ -654,8 +851,16 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { if (els.nowPlaying && els.nowPlaying.classList.contains('open')) closeNowPlaying(); if (els.eqSheet && els.eqSheet.classList.contains('open')) closeEq(); }
+    if (e.key === 'Escape') { 
+      if (els.nowPlaying && els.nowPlaying.classList.contains('open')) closeNowPlaying(); 
+      if (els.eqSheet && els.eqSheet.classList.contains('open')) closeEq(); 
+    }
     if (e.code === 'Space' && document.activeElement?.tagName !== 'INPUT') { e.preventDefault(); togglePlay(); }
   });
   window.addEventListener('resize', () => { if (vizRunning) prepareViz(); }, { passive: true });
+  
+  // Periodic Bluetooth check
+  setInterval(() => {
+    if (state.btConnected) checkBluetoothConnection();
+  }, 15000);
 })();

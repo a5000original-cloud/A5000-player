@@ -132,7 +132,7 @@
               </div>
             </div>
 
-            <div class="quick-row">
+            <div class="quick-row apple-stagger">
               <button class="quick-btn primary" onclick="playRandom()">
                 <span class="qb-icon">🎲</span>
                 <div>
@@ -155,6 +155,8 @@
                 </div>
               </button>
             </div>
+
+            <div class="track-banner apple-fade-in" id="trackBanner"></div>
 
             <div class="section-head"><h2>Хронология</h2></div>
             <div class="timeline" id="timeline"></div>
@@ -522,7 +524,29 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- ═══ BLUETOOTH CONNECTION OVERLAY ═══ -->
+    <div class="bt-overlay" id="btOverlay">
+      <div class="bt-icon-wrap">
+        <div class="bt-ring"></div>
+        <div class="bt-ring"></div>
+        <div class="bt-ring"></div>
+        <div class="bt-icon-circle" id="btIconCircle">🎧</div>
+      </div>
+      <div class="bt-device-icon" id="btDeviceIcon">🎧</div>
+      <div class="bt-text" id="btText">Подключение...</div>
+      <div class="bt-subtext" id="btSubtext">Bluetooth аудиоустройство</div>
+      <div class="bt-wave"><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+
     <audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
+    <script>
+      document.getElementById('audio').addEventListener('error', function() {
+        if (window.__toast) window.__toast('⚠ Ошибка загрузки аудио');
+      });
+    </script>
     <script src="./script.js"></script>
+  </body>
+</html>
   </body>
 </html>
