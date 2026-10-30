@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = 'a5000-player-' + CACHE_VERSION;
 
 // Статические ассеты для пре-кэширования
@@ -19,7 +19,7 @@ self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then(c =>
-      Promise.all(PRECACHE.map(u => c.add(u).catch(() => null)))
+      c.addAll(PRECACHE).catch(() => {})
     )
   );
 });
@@ -36,30 +36,61 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Стратегия: Network First для аудио, Cache First для изображений
+// Хелпер для безопасного кэширования
+async function cacheSafe(urlOrRequest, cache) {
+  try {
+    const response = typeof urlOrRequest === 'string' 
+      ? await fetch(urlOrRequest) 
+      : await fetch(urlOrRequest);
+    
+    if (response && response.status === 200) {
+      await cache.put(urlOrRequest, response.clone());
+      return response.clone();
+    }
+  } catch (e) {
+    // Ignore network errors
+  }
+  return null;
+}
+
+// Хелпер для очистки старого кэша
+async function pruneCache(cache) {
+  try {
+    const keys = await cache.keys();
+    if (keys.length > MAX_CACHE_SIZE) {
+      await cache.delete(keys[0]);
+    }
+  } catch (e) {
+    // Ignore cleanup errors
+  }
+}
+
 self.addEventListener('fetch', e => {
   const { request } = e;
+  
+  // Игнорируем не-GET запросы
   if (request.method !== 'GET') return;
+  
   const url = new URL(request.url);
+  
+  // Игнорируем не-HTTP(S) протоколы
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   // Аудиофайлы: Network First с fallback на кэш
   if (url.pathname.match(/\.(mp3|wav|flac|m4a|ogg)$/i)) {
     e.respondWith(
       fetch(request)
-        .then(res => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(c => {
-              c.keys().then(keys => {
-                if (keys.length > MAX_CACHE_SIZE) c.delete(keys[0]);
-                c.put(request, clone);
-              });
-            });
+        .then(async response => {
+          if (response && response.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
           }
-          return res;
+          return response;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+        })
     );
     return;
   }
@@ -67,26 +98,36 @@ self.addEventListener('fetch', e => {
   // Изображения (обложки): Cache First с обновлением
   if (url.pathname.match(/\.(webp|png|jpe?g|gif|svg|ico)$/i)) {
     e.respondWith(
-      caches.match(request).then(cached => {
-        const cacheOrFetch = cached || fetch(request).then(res => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(c => {
-              c.keys().then(keys => {
-                if (keys.length > MAX_CACHE_SIZE) c.delete(keys[0]);
-                c.put(request, clone);
-              });
-            });
-          }
-          return res;
-        }).catch(() => cached);
-        return cacheOrFetch || new Response('', { status: 404 });
-      })
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        
+        if (cached) {
+          // Обновляем в фоне
+          fetch(request)
+            .then(async response => {
+              if (response && response.status === 200) {
+                await cache.put(request, response.clone());
+              }
+            })
+            .catch(() => {});
+          return cached;
+        }
+        
+        // Не найдено в кэше — пробуем сеть
+        const networkResponse = await fetch(request).catch(() => null);
+        if (networkResponse && networkResponse.status === 200) {
+          await cache.put(request, networkResponse.clone());
+          return networkResponse;
+        }
+        
+        return new Response('', { status: 404 });
+      })()
     );
     return;
   }
 
-  // HTML/JS/CSS: Network First с fallback на кэш (stale-while-revalidate)
+  // HTML/JS/CSS: Network First с fallback на кэш
   if (
     request.mode === 'navigate' ||
     url.pathname.endsWith('.html') ||
@@ -95,39 +136,42 @@ self.addEventListener('fetch', e => {
   ) {
     e.respondWith(
       fetch(request)
-        .then(res => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(c => c.put(request, clone));
+        .then(async response => {
+          if (response && response.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, response.clone());
           }
-          return res;
+          return response;
         })
-        .catch(() => caches.match(request).then(r => r || caches.match('./index.html')))
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          
+          // Fallback на index.html для SPA роутинга
+          if (request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+          
+          return new Response('Offline', { status: 503, statusText: 'Offline' });
+        })
     );
     return;
   }
 
   // Остальное: Cache First
   e.respondWith(
-    caches.match(request).then(cached => {
-      return cached || fetch(request).then(res => {
-        if (res && res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-    })
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+      
+      if (cached) return cached;
+      
+      const networkResponse = await fetch(request).catch(() => null);
+      if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+        await cache.put(request, networkResponse.clone());
+      }
+      
+      return networkResponse || cached || new Response('', { status: 404 });
+    })()
   );
-});
-
-// Periodic background sync для обновления кэша
-self.addEventListener('periodicsync', e => {
-  if (e.tag === 'update-cache') {
-    e.waitUntil(
-      caches.open(CACHE_NAME).then(cache =>
-        Promise.all(PRECACHE.map(url => cache.add(url).catch(() => null)))
-      )
-    );
-  }
 });
