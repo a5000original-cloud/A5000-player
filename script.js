@@ -233,12 +233,22 @@ function coverHTML(t, size=200){
 function hydrateCover(el, t, size=320){ if (el) el.innerHTML = coverHTML(t, size); }
 
 async function preloadCovers(){
-  await Promise.all(TRACKS.map(t => new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => { state.coverCache[t.id] = true; resolve(); };
-    img.onerror = () => { state.coverCache[t.id] = false; resolve(); };
-    img.src = './covers/' + t.cover;
-  })));
+  // Ограничиваем параллельные загрузки для мобильных
+  const concurrency = 3;
+  const promises = TRACKS.map((t, i) => new Promise(resolve => {
+    // Загружаем с задержкой для ограничения параллельности
+    setTimeout(() => {
+      const img = new Image();
+      let settled = false;
+      const timeout = setTimeout(() => {
+        if (!settled) { settled = true; state.coverCache[t.id] = false; resolve(); }
+      }, 3000); // 3 секунды таймаут на изображение
+      img.onload = () => { if (!settled) { clearTimeout(timeout); settled = true; state.coverCache[t.id] = true; resolve(); } };
+      img.onerror = () => { if (!settled) { clearTimeout(timeout); settled = true; state.coverCache[t.id] = false; resolve(); } };
+      img.src = './covers/' + t.cover;
+    }, i * 100); // Небольшая задержка между загрузками
+  }));
+  await Promise.all(promises);
 }
 
 function trackListHTML(tracks){
@@ -360,6 +370,10 @@ function initAudioEngine(){
     trebleFilter = audioCtx.createBiquadFilter(); trebleFilter.type = 'highshelf'; trebleFilter.frequency.value = 4000; trebleFilter.gain.value = 0;
     convolver = audioCtx.createConvolver(); convolver.buffer = generateReverbImpulse(1.8, 2.0);
     wetGain = audioCtx.createGain(); wetGain.gain.value = 0; dryGain = audioCtx.createGain(); dryGain.gain.value = 1;
+    // На мобильных уменьшаем максимальный уровень реверба для экономии CPU
+    if (isMobile) {
+      convolver.buffer = generateReverbImpulse(0.8, 1.5);
+    }
     sourceNode.connect(bassFilter); bassFilter.connect(midFilter); midFilter.connect(trebleFilter);
     trebleFilter.connect(dryGain); dryGain.connect(audioCtx.destination);
     trebleFilter.connect(convolver); convolver.connect(wetGain); wetGain.connect(audioCtx.destination);
@@ -368,7 +382,9 @@ function initAudioEngine(){
 }
 function ensureAudioRunning(){ initAudioEngine(); if (audioCtx && audioCtx.state === 'suspended') return audioCtx.resume(); return Promise.resolve(); }
 function generateReverbImpulse(duration, decay){
-  const rate = audioCtx.sampleRate, length = Math.floor(rate * duration), impulse = audioCtx.createBuffer(2, length, rate);
+  // Уменьшаем длительность реверба на мобильных для производительности
+  const mobileDuration = isMobile ? Math.min(duration, 1.0) : duration;
+  const rate = audioCtx.sampleRate, length = Math.floor(rate * mobileDuration), impulse = audioCtx.createBuffer(2, length, rate);
   for (let ch = 0; ch < 2; ch++) { const data = impulse.getChannelData(ch); for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay); }
   return impulse;
 }
@@ -394,32 +410,46 @@ function openEq(){
 }
 function closeEq(){ if (els.eqSheet) els.eqSheet.classList.remove('open'); }
 
-/* ═══ ВИЗУАЛИЗАТОР (ОТ ОБЛОЖКИ) ═══ */
+/* ═══ ВИЗУАЛИЗАТОР (ОПТИМИЗИРОВАНО) ═══ */
 let vizRunning = false, vizRAF = null, vizLast = 0, vizRot = 0, vizAGC = 0.1, vizTime = 0;
 let vizCtx = null, vizSize = { w: 0, h: 0, coverW: 0, coverH: 0 };
+let vizCoverRect = null; // Кэш размера обложки
+let vizCanvasRect = null; // Кэш размера canvas
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Динамический FPS: меньше для слабых устройств
+function getVizFPS() {
+  const w = window.innerWidth;
+  if (w < 400) return 20;       // Маленькие экраны
+  if (w < 768) return 24;       // Мобильные
+  if (w < 1024) return 28;      // Планшеты
+  return 30;                     // Десктоп
+}
 const isMobile = window.innerWidth < 900;
-const FPS = isMobile ? 24 : 30; 
-const VIZ_INTERVAL = 1000 / FPS;
+let currentFPS = getVizFPS();
+let lastFPSUpdate = 0;
 
 function prepareViz(){
   const c = els.visualizer; if (!c) return false;
-  vizCtx = c.getContext('2d', { alpha: true }); if (!vizCtx) return false;
+  vizCtx = c.getContext('2d', { alpha: true, desynchronized: true }); if (!vizCtx) return false;
   const cover = els.npCover;
   if (!cover) return false;
-  const rect = cover.getBoundingClientRect();
-  const canvasRect = c.getBoundingClientRect();
-  const scale = canvasRect.width / rect.width;
-  const coverW = rect.width, coverH = rect.height;
-  const w = canvasRect.width, h = canvasRect.height;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const canvasRect = c.getBoundingClientRect();
+  const coverRect = cover.getBoundingClientRect();
+  const w = canvasRect.width, h = canvasRect.height;
+  // Устанавливаем размер canvas один раз при инициализации
   if (c.width !== w * dpr || c.height !== h * dpr) { c.width = w * dpr; c.height = h * dpr; }
   vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  vizSize = { w, h, coverW, coverH, scale };
+  vizSize = { w, h, coverW: coverRect.width, coverH: coverRect.height, scale: w / coverRect.width };
+  vizCoverRect = coverRect;
+  vizCanvasRect = canvasRect;
   return true;
 }
 function startViz(){
-  if (vizRunning) return; if (!analyser) initAudioEngine(); if (!analyser) return;
+  if (vizRunning) return;
+  if (prefersReducedMotion) return; // Уважаем настройку пользователя
+  if (!analyser) initAudioEngine(); if (!analyser) return;
   if (!prepareViz()) return; vizRunning = true; vizLast = 0; vizRAF = requestAnimationFrame(vizLoop);
 }
 function stopViz(){
@@ -428,7 +458,9 @@ function stopViz(){
 }
 function vizLoop(ts){
   if (!vizRunning) return; vizRAF = requestAnimationFrame(vizLoop);
-  if (ts - vizLast < VIZ_INTERVAL) return;
+  // Обновляем FPS раз в 5 секунд (на случай поворота экрана)
+  if (ts - lastFPSUpdate > 5000) { lastFPSUpdate = ts; currentFPS = getVizFPS(); }
+  if (ts - vizLast < 1000 / currentFPS) return;
   vizLast = ts; vizTime = ts / 1000;
   if (!els.nowPlaying || !els.nowPlaying.classList.contains('open') || document.hidden) return;
   drawViz();
@@ -436,16 +468,14 @@ function vizLoop(ts){
 function drawViz(){
   if (!vizCtx || !analyser) return;
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  // Пересчитываем размер обложки каждый кадр
-  const cover = els.npCover;
-  if (cover) {
-    const rect = cover.getBoundingClientRect();
-    const canvasRect = els.visualizer.getBoundingClientRect();
-    vizSize.coverW = rect.width;
-    vizSize.coverH = rect.height;
-    vizSize.scale = canvasRect.width / rect.width;
-    vizSize.w = canvasRect.width;
-    vizSize.h = canvasRect.height;
+  // Обновляем размер обложки ТОЛЬКО если изменился (раз в N кадров)
+  if (els.npCover && vizCoverRect) {
+    const rect = els.npCover.getBoundingClientRect();
+    if (Math.abs(rect.width - vizCoverRect.width) > 2 || Math.abs(rect.height - vizCoverRect.height) > 2) {
+      vizSize.coverW = rect.width;
+      vizSize.coverH = rect.height;
+      vizCoverRect = rect;
+    }
   }
   const dataLen = analyser.frequencyBinCount, raw = new Uint8Array(dataLen); analyser.getByteFrequencyData(raw);
   const w = vizSize.w, h = vizSize.h; vizCtx.clearRect(0, 0, w, h);
@@ -682,9 +712,8 @@ function toggleShuffle(){ state.shuffle = !state.shuffle; if (els.npShuffle) els
 function cycleRepeat(){ state.repeat = (state.repeat + 1) % 3; if (els.npRepeat) els.npRepeat.classList.toggle('active', state.repeat !== 0); toast(['↩ Без повтора','🔂 Трек','🔁 Все'][state.repeat]); vibrate(6); }
 
 function updateUIForTrack(t){
-  const isDesktop = window.innerWidth >= 900;
   hydrateCover(els.mpCover, t, 96); if (els.mpTitle) els.mpTitle.textContent = t.title; if (els.mpFeat) els.mpFeat.textContent = t.feat ? 'feat. ' + t.feat : 'A5000 · ' + t.year;
-  if (!isDesktop && els.miniPlayer) els.miniPlayer.classList.add('show');
+  if (els.miniPlayer) els.miniPlayer.classList.add('show');
   hydrateCover(els.npCover, t, 480); if (els.npTitle) els.npTitle.textContent = t.title; if (els.npArtist) els.npArtist.textContent = t.feat ? 'A5000 × ' + t.feat : 'A5000'; if (els.npAlbum) els.npAlbum.textContent = t.year + ' · Single'; if (els.npHeaderName) els.npHeaderName.textContent = t.title;
   if (els.npTimeCurrent) els.npTimeCurrent.textContent = '0:00'; if (els.npTimeTotal) els.npTimeTotal.textContent = t.duration; if (els.npProgressFill) els.npProgressFill.style.width = '0%'; if (els.npProgressKnob) els.npProgressKnob.style.left = '0%';
   updateLikeButton(); if (els.npShuffle) els.npShuffle.classList.toggle('active', state.shuffle); if (els.npRepeat) els.npRepeat.classList.toggle('active', state.repeat !== 0);
@@ -698,9 +727,20 @@ function updatePlayIcons(){
 }
 function openNowPlaying(){
   if (!audio.src) { toast('Сначала выбери трек'); return; }
-  if (els.nowPlaying) els.nowPlaying.classList.add('open'); ensureAudioRunning().then(() => { setTimeout(() => startViz(), 80); }); vibrate(6);
+  if (els.nowPlaying) els.nowPlaying.classList.add('open');
+  if (els.miniPlayer) els.miniPlayer.style.opacity = '0.3';
+  if (els.miniPlayer) els.miniPlayer.style.pointerEvents = 'none';
+  ensureAudioRunning().then(() => { setTimeout(() => startViz(), 80); }); vibrate(6);
 }
-function closeNowPlaying(){ if (els.nowPlaying) els.nowPlaying.classList.remove('open'); stopViz(); vibrate(4); }
+function closeNowPlaying(){
+  if (els.nowPlaying) els.nowPlaying.classList.remove('open');
+  stopViz();
+  if (els.miniPlayer) {
+    els.miniPlayer.style.opacity = '';
+    els.miniPlayer.style.pointerEvents = '';
+  }
+  vibrate(4);
+}
 
 let lastProg = 0;
 audio.addEventListener('timeupdate', () => {
@@ -859,8 +899,14 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   });
   window.addEventListener('resize', () => { if (vizRunning) prepareViz(); }, { passive: true });
   
-  // Periodic Bluetooth check
+  // Останавливаем визуализатор когда вкладка скрыта (экономия батареи)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && vizRunning) stopViz();
+    else if (!document.hidden && els.nowPlaying?.classList.contains('open') && state.playing) startViz();
+  });
+  
+  // Periodic Bluetooth check (реже для экономии батареи)
   setInterval(() => {
     if (state.btConnected) checkBluetoothConnection();
-  }, 15000);
+  }, 60000);
 })();
